@@ -3199,9 +3199,9 @@ func DllCallValidateAddress(address string, w *wallet.Wallet) (string, error) {
 	}
 	_, err := validateAddress(cmd, w)
 	if err == nil {
-		return address
+		return address, err
 	} else {
-		return ""
+		return "", err
 	}
 }
 

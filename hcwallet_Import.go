@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"github.com/HcashOrg/hcd/hcjson"
 	"github.com/HcashOrg/hcwallet/rpc/legacyrpc"
+	"github.com/HcashOrg/hcwallet/wallet"
 	"strings"
 	"sync"
 	"time"
