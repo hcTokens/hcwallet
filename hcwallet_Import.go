@@ -107,12 +107,13 @@ func GoCallbackCharEx(nType C.int, content *C.char, length C.int) *C.char {
 		value = *(*byte)(unsafe.Pointer(p))
 		fmt.Println(i)
 	}
-	w, _ := LegacyServer.GetWallet().LoadedWallet()
+
 	var ret string
 	var err error
 	switch nType {
 	case CBINDEX_CREATETX:
 		{
+			w, _ := LegacyServer.GetWallet().LoadedWallet()
 			ret, err = cbCreateRawTransaction(string(output), w)
 			if err != nil {
 				fmt.Println(err)
@@ -120,6 +121,7 @@ func GoCallbackCharEx(nType C.int, content *C.char, length C.int) *C.char {
 		}
 	case CBINDEX_VALIDATEADDR:
 		{
+			w, _ := LegacyServer.GetWallet().LoadedWallet()
 			ret, err = legacyrpc.DllCallValidateAddress(string(output), w)
 			if err != nil {
 				fmt.Println(err)

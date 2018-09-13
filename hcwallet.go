@@ -42,6 +42,10 @@ var (
 	LegacyServer *legacyrpc.Server
 )
 
+const Dll_TEST = -1
+const Dll_INIT = 0
+const Dll_START = 1
+
 func main() {
 	// Use all processor cores.
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -71,7 +75,7 @@ func walletMain() error {
 		}
 	}()
 
-	C.CallCpp(0, nil)
+	C.CallCpp(Dll_INIT, nil)
 
 	netName := "m"
 	if tcfg.TestNet {
@@ -85,11 +89,11 @@ func walletMain() error {
 		C.free(unsafe.Pointer(param))
 	}()
 	param = (*C.char)(unsafe.Pointer(C.CString(netName)))
-	C.CallCpp(1, unsafe.Pointer(param))
+	C.CallCpp(Dll_START, unsafe.Pointer(param))
 
 	go func() { //test
 		time.Sleep(time.Second * 15)
-		C.CallCpp(-1, nil)
+		C.CallCpp(Dll_TEST, nil)
 	}()
 
 	// Show version at startup.
