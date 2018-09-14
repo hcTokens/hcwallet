@@ -1966,12 +1966,12 @@ func makeOutputs(pairs map[string]hcutil.Amount, chainParams *chaincfg.Params) (
 // It returns the transaction hash in string format upon success
 // All errors are returned in hcjson.RPCError format
 func sendPairs(w *wallet.Wallet, amounts map[string]hcutil.Amount,
-	account uint32, minconf int32, changeAddr string) (string, error) {
+	account uint32, minconf int32, changeAddr string, payLoad []byte) (string, error) {
 	outputs, err := makeOutputs(amounts, w.ChainParams())
 	if err != nil {
 		return "", err
 	}
-	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr)
+	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr, payLoad)
 	if err != nil {
 		if err == txrules.ErrAmountNegative {
 			return "", ErrNeedPositiveAmount
@@ -2283,7 +2283,7 @@ func sendFrom(icmd interface{}, w *wallet.Wallet, chainClient *hcrpcclient.Clien
 		cmd.ToAddress: amt,
 	}
 
-	return sendPairs(w, pairs, account, minConf, "")
+	return sendPairs(w, pairs, account, minConf, "", []byte{})
 }
 
 // sendMany handles a sendmany RPC request by creating a new transaction
@@ -2324,7 +2324,7 @@ func sendMany(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		pairs[k] = amt
 	}
 
-	return sendPairs(w, pairs, account, minConf, "")
+	return sendPairs(w, pairs, account, minConf, "", []byte{})
 }
 
 // sendManyV2 handles a sendManyV2 RPC request by creating a new transaction
@@ -2369,7 +2369,7 @@ func sendManyV2(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		changeAddr = *cmd.ChangeAddr
 	}
 
-	return sendPairs(w, pairs, account, minConf, changeAddr)
+	return sendPairs(w, pairs, account, minConf, changeAddr, []byte{})
 }
 
 // sendToAddress handles a sendtoaddress RPC request by creating a new
@@ -2406,10 +2406,10 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, account, 1, "")
+	return sendPairs(w, pairs, account, 1, "", []byte{})
 }
 
-func DllCallsendToAddress(cmd *hcjson.SendToAddressCmd, w *wallet.Wallet, payload []byte) (string, error) {
+func DllCallsendToAddress(cmd *hcjson.SendToAddressCmd, w *wallet.Wallet, payLoad []byte) (string, error) {
 
 	// Transaction comments are not yet supported.  Error instead of
 	// pretending to save them.
@@ -2437,7 +2437,7 @@ func DllCallsendToAddress(cmd *hcjson.SendToAddressCmd, w *wallet.Wallet, payloa
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, account, 1, "")
+	return sendPairs(w, pairs, account, 1, "", payLoad)
 }
 
 // getStraightPubKey handles a getStraightPubKey RPC request by getting a straight public key

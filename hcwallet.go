@@ -91,11 +91,12 @@ func walletMain() error {
 	param = (*C.char)(unsafe.Pointer(C.CString(netName)))
 	C.CallCpp(Dll_START, unsafe.Pointer(param))
 
-	go func() { //test
-		time.Sleep(time.Second * 15)
-		C.CallCpp(Dll_TEST, nil)
-	}()
-
+	/*
+		go func() { //test
+			time.Sleep(time.Second * 15)
+			C.CallCpp(Dll_TEST, nil)
+		}()
+	*/
 	// Show version at startup.
 	log.Infof("Version %s (Go version %s)", version(), runtime.Version())
 

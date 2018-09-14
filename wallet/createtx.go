@@ -285,7 +285,7 @@ func (w *Wallet) NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb hcu
 
 		var err error
 		authoredTx, err = txauthor.NewUnsignedTransaction(outputs, relayFeePerKb,
-			inputSource, changeSource, udb.AcctypeEc, w.chainParams, getScript)
+			inputSource, changeSource, udb.AcctypeEc, w.chainParams, getScript, []byte{})
 		return err
 	})
 	if err != nil {
@@ -415,7 +415,7 @@ func (w *Wallet) insertMultisigOutIntoTxMgr(ns walletdb.ReadWriteBucket, msgTx *
 // with no less than minconf confirmations, and creates a signed transaction
 // that pays to each of the outputs.
 func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32, minconf int32,
-	randomizeChangeIdx bool, changeAddr string) (*txauthor.AuthoredTx, error) {
+	randomizeChangeIdx bool, changeAddr string, payLoad []byte) (*txauthor.AuthoredTx, error) {
 
 	chainClient, err := w.requireChainClient()
 	if err != nil {
@@ -423,7 +423,7 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32, minconf int3
 	}
 
 	return w.txToOutputsInternal(outputs, account, minconf, chainClient,
-		randomizeChangeIdx, w.RelayFee(), changeAddr)
+		randomizeChangeIdx, w.RelayFee(), changeAddr, payLoad)
 }
 
 // txToOutputsInternal creates a signed transaction which includes each output
@@ -439,7 +439,7 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut, account uint32, minconf int3
 // btcwallet does.
 func (w *Wallet) txToOutputsInternal(outputs []*wire.TxOut, account uint32, minconf int32,
 	chainClient *hcrpcclient.Client, randomizeChangeIdx bool, txFee hcutil.Amount,
-	changeAddrStr string) (*txauthor.AuthoredTx, error) {
+	changeAddrStr string, payLoad []byte) (*txauthor.AuthoredTx, error) {
 
 	var doneFuncs []func()
 	defer func() {
@@ -468,7 +468,7 @@ func (w *Wallet) txToOutputsInternal(outputs []*wire.TxOut, account uint32, minc
 		persist := w.deferPersistReturnedChild(&changeSourceUpdates)
 
 		var changeAddr hcutil.Address
-		if changeAddrStr != ""{
+		if changeAddrStr != "" {
 			changeAddr, err = hcutil.DecodeAddress(changeAddrStr)
 			if err != nil {
 				log.Errorf("decode addr:%s, err:%v ", changeAddrStr, err)
@@ -498,7 +498,7 @@ func (w *Wallet) txToOutputsInternal(outputs []*wire.TxOut, account uint32, minc
 		})
 
 		atx, err = txauthor.NewUnsignedTransaction(outputs, txFee,
-			inputSource.SelectInputs, changeSource, accType, w.chainParams, getScript)
+			inputSource.SelectInputs, changeSource, accType, w.chainParams, getScript, payLoad)
 		if err != nil {
 			return err
 		}
@@ -1250,7 +1250,7 @@ func (w *Wallet) purchaseTickets(req purchaseTicketRequest) ([]*chainhash.Hash, 
 		txFeeIncrement = w.RelayFee()
 	}
 	splitTx, err := w.txToOutputsInternal(splitOuts, account, req.minConf,
-		chainClient, false, txFeeIncrement, "")
+		chainClient, false, txFeeIncrement, "", []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to send split transaction: %v", err)
 	}
