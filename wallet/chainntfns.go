@@ -448,6 +448,7 @@ type OmniParam struct {
 	Sender       string
 	Reference    string
 	TxHash       string
+	BlockHash    string
 	Block        uint32
 	Idx          int
 	ScriptEncode string
@@ -485,10 +486,12 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 				allOut += tx.Value
 			}
 
+			bHash := blockHeader.BlockHash()
 			group := OmniParam{
 				Sender:       "default",
 				Reference:    "",
 				TxHash:       hex.EncodeToString(rec.Hash[:]),
+				BlockHash:    hex.EncodeToString(bHash[:]),
 				Block:        blockHeader.Height,
 				Idx:          0,
 				ScriptEncode: hex.EncodeToString(tx.PkScript[2:]),
