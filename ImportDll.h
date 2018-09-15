@@ -1,5 +1,7 @@
 
-int GoCallback(int ntype);
-char* GoCallbackChar(int ntype, char* context);
-char* GoCallbackCharEx(int ntype, char* context, int len);
+int DllCallBack(int nType);
+char* DllCallBackChar(int nType, char* str);
+char* DllCallBackCharEx(int nType, char* str, int len);
+
+
 int CallCpp(int type, void* param);

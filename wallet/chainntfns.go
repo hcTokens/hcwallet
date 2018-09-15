@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"time"
 
+	"encoding/hex"
+	"encoding/json"
 	"github.com/HcashOrg/hcd/blockchain/stake"
 	"github.com/HcashOrg/hcd/chaincfg/chainhash"
 	"github.com/HcashOrg/hcd/hcutil"
@@ -36,6 +38,9 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 			notificationName = "blockconnected"
 			err = w.onBlockConnected(n.BlockHeader, n.Transactions)
 			if err == nil {
+				for _, serializedTx := range n.Transactions {
+					w.ProcessPayLoadTransaction(serializedTx, n.BlockHeader)
+				}
 				err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 					return w.watchFutureAddresses(tx)
 				})
@@ -430,7 +435,77 @@ func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, seriali
 	if err != nil {
 		return err
 	}
+	if len(rec.MsgTx.TxOut) == 3 {
+		tempOut := rec.MsgTx.TxOut[2]
+		if tempOut.PkScript[0] == 106 && len(tempOut.PkScript) == 66 {
+			fmt.Println(tempOut)
+		}
+	}
 	return w.processTransactionRecord(dbtx, rec, serializedHeader, blockMeta)
+}
+
+type OmniParam struct {
+	Sender       string
+	Reference    string
+	TxHash       string
+	Block        uint32
+	Idx          int
+	ScriptEncode string
+	Fee          int64
+	Time         int64
+}
+
+func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockHeader []byte) error {
+	rec, err := udb.NewTxRecord(serializedTx, time.Now())
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range rec.MsgTx.TxOut {
+		if len(tx.PkScript) == 66 &&
+			tx.PkScript[0] == 106 &&
+			tx.PkScript[1] == 64 &&
+			tx.PkScript[2] == 111 &&
+			tx.PkScript[3] == 109 &&
+			tx.PkScript[4] == 110 &&
+			tx.PkScript[5] == 105 {
+			//GoCallCpp(CBINDEX_PROCESS_PAYLOAD, hex.EncodeToString(tx.PkScript))
+
+			var blockHeader wire.BlockHeader
+			err := blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
+			if err != nil {
+				return err
+			}
+
+			var allIn, allOut int64
+			for _, tx := range rec.MsgTx.TxIn {
+				allIn += tx.ValueIn
+			}
+			for _, tx := range rec.MsgTx.TxOut {
+				allOut += tx.Value
+			}
+
+			group := OmniParam{
+				Sender:       "default",
+				Reference:    "",
+				TxHash:       hex.EncodeToString(rec.Hash[:]),
+				Block:        blockHeader.Height,
+				Idx:          0,
+				ScriptEncode: hex.EncodeToString(tx.PkScript[2:]),
+				Fee:          allIn - allOut,
+				Time:         blockHeader.Timestamp.Unix(),
+			}
+			b, err := json.Marshal(group)
+
+			if err == nil {
+				fmt.Println(b)
+			}
+			//construct omni variables
+
+			w.MsgReceiver <- string(b)
+		}
+	}
+	return nil
 }
 
 func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.TxRecord,

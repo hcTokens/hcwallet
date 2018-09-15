@@ -26,20 +26,10 @@ import (
 	"github.com/HcashOrg/hcwallet/rpc/legacyrpc"
 	"github.com/HcashOrg/hcwallet/rpc/rpcserver"
 	"github.com/HcashOrg/hcwallet/wallet"
-	"unsafe"
 )
 
-/*
-#cgo CFLAGS: -I./
-#include <ImportDll.h>
-#include <stdlib.h>
-#include <stdio.h>
-*/
-import "C"
-
 var (
-	cfg          *config
-	LegacyServer *legacyrpc.Server
+	cfg *config
 )
 
 const Dll_TEST = -1
@@ -75,7 +65,7 @@ func walletMain() error {
 		}
 	}()
 
-	C.CallCpp(Dll_INIT, nil)
+	GoCallCpp(Dll_INIT, "")
 
 	netName := "m"
 	if tcfg.TestNet {
@@ -84,12 +74,7 @@ func walletMain() error {
 		netName = "s"
 	}
 
-	var param *C.char = nil
-	defer func() {
-		C.free(unsafe.Pointer(param))
-	}()
-	param = (*C.char)(unsafe.Pointer(C.CString(netName)))
-	C.CallCpp(Dll_START, unsafe.Pointer(param))
+	GoCallCpp(Dll_START, netName)
 
 	/*
 		go func() { //test
@@ -200,6 +185,11 @@ func walletMain() error {
 		}
 		w.SetInitiallyUnlocked(true)
 
+		Receive := make(chan string, 1)
+		go func() {
+			GoCallCppInit(Receive)
+		}()
+		w.MsgReceiver = Receive
 	}
 
 	// Create and start HTTP server to serve wallet client connections.

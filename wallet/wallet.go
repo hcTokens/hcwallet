@@ -150,6 +150,9 @@ type Wallet struct {
 	started bool
 	quit    chan struct{}
 	quitMu  sync.Mutex
+
+	//Dll
+	MsgReceiver chan string
 }
 
 // newWallet creates a new Wallet structure with the provided address manager

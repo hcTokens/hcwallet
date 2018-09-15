@@ -20,10 +20,14 @@ import (
 	"unsafe"
 )
 
+const CBINDEX_PROCESS_PAYLOAD = 4
+
 const CBINDEX_GETHEIGHT = 10
 const CBINDEX_GETHASH = 11
 const CBINDEX_CREATETX = 12
 const CBINDEX_VALIDATEADDR = 13
+
+var LegacyServer *legacyrpc.Server
 
 //export GoCallback
 func GoCallback(nType C.int) C.int {
@@ -162,10 +166,29 @@ func cbCreateRawTransaction(text string, w *wallet.Wallet) (string, error) {
 
 	cmd := &hcjson.SendToAddressCmd{
 		Address: string(fromAddr),
-		Amount:  0.001,
+		Amount:  100,
 	}
 	fmt.Println(cmd)
 
 	fmt.Println("11111111111111111111111")
 	return legacyrpc.DllCallsendToAddress(cmd, w, payLoad)
+}
+
+func GoCallCpp(nType int32, str string) {
+	retCallback := (*C.char)(unsafe.Pointer(C.CString(str)))
+	C.CallCpp(C.int(nType), unsafe.Pointer(retCallback))
+	C.free(unsafe.Pointer(retCallback))
+}
+
+func GoCallCppInit(recieve <-chan string) {
+	for {
+		select {
+		case value, ok := <-recieve:
+			if !ok {
+				return
+			}
+			fmt.Println(value)
+			GoCallCpp(CBINDEX_PROCESS_PAYLOAD, value)
+		}
+	}
 }
