@@ -3292,8 +3292,6 @@ func walletIsLocked(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return w.Locked(), nil
 }
 
-
-
 // walletLock handles a walletlock request by locking the all account
 // wallets, returning an error if any wallet is not encrypted (for example,
 // a watching-only wallet).
