@@ -33,6 +33,8 @@ import (
 	"github.com/HcashOrg/hcwallet/wallet"
 	"github.com/HcashOrg/hcwallet/wallet/txrules"
 	"github.com/HcashOrg/hcwallet/wallet/udb"
+
+
 )
 
 // API version constants
@@ -175,6 +177,11 @@ var rpcHandlers = map[string]struct {
 	"listalltransactions":     {handler: listAllTransactions},
 	"renameaccount":           {handler: renameAccount},
 	"walletislocked":          {handler: walletIsLocked},
+
+	"omni_getinfo":          {handler: omni_getinfo},//by ycj 20180915
+	"omni_createpayload_simplesend":    {handler: omni_createpayload_simplesend},
+	"omni_createpayload_issuancefixed":    {handler: omni_createpayload_issuancefixed},
+	"omni_listproperties":    {handler: omni_listproperties},
 }
 
 // unimplemented handles an unimplemented RPC request with the
@@ -1966,12 +1973,12 @@ func makeOutputs(pairs map[string]hcutil.Amount, chainParams *chaincfg.Params) (
 // It returns the transaction hash in string format upon success
 // All errors are returned in hcjson.RPCError format
 func sendPairs(w *wallet.Wallet, amounts map[string]hcutil.Amount,
-	account uint32, minconf int32, changeAddr string, payLoad []byte) (string, error) {
+	account uint32, minconf int32, changeAddr string) (string, error) {
 	outputs, err := makeOutputs(amounts, w.ChainParams())
 	if err != nil {
 		return "", err
 	}
-	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr, payLoad)
+	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr,[]byte{})
 	if err != nil {
 		if err == txrules.ErrAmountNegative {
 			return "", ErrNeedPositiveAmount
@@ -2283,7 +2290,7 @@ func sendFrom(icmd interface{}, w *wallet.Wallet, chainClient *hcrpcclient.Clien
 		cmd.ToAddress: amt,
 	}
 
-	return sendPairs(w, pairs, account, minConf, "", []byte{})
+	return sendPairs(w, pairs, account, minConf, "")
 }
 
 // sendMany handles a sendmany RPC request by creating a new transaction
@@ -2324,7 +2331,7 @@ func sendMany(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		pairs[k] = amt
 	}
 
-	return sendPairs(w, pairs, account, minConf, "", []byte{})
+	return sendPairs(w, pairs, account, minConf, "")
 }
 
 // sendManyV2 handles a sendManyV2 RPC request by creating a new transaction
@@ -2369,7 +2376,7 @@ func sendManyV2(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		changeAddr = *cmd.ChangeAddr
 	}
 
-	return sendPairs(w, pairs, account, minConf, changeAddr, []byte{})
+	return sendPairs(w, pairs, account, minConf, changeAddr)
 }
 
 // sendToAddress handles a sendtoaddress RPC request by creating a new
@@ -2406,38 +2413,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, account, 1, "", []byte{})
-}
-
-func DllCallsendToAddress(cmd *hcjson.SendToAddressCmd, w *wallet.Wallet, payLoad []byte) (string, error) {
-
-	// Transaction comments are not yet supported.  Error instead of
-	// pretending to save them.
-	if !isNilOrEmpty(cmd.Comment) || !isNilOrEmpty(cmd.CommentTo) {
-		return "", &hcjson.RPCError{
-			Code:    hcjson.ErrRPCUnimplemented,
-			Message: "Transaction comments are not yet supported",
-		}
-	}
-
-	account := uint32(udb.DefaultAccountNum)
-	amt, err := hcutil.NewAmount(cmd.Amount)
-	if err != nil {
-		return "", err
-	}
-
-	// Check that signed integer parameters are positive.
-	if amt < 0 {
-		return "", ErrNeedPositiveAmount
-	}
-
-	// Mock up map of address and amount pairs.
-	pairs := map[string]hcutil.Amount{
-		cmd.Address: amt,
-	}
-
-	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, account, 1, "", payLoad)
+	return sendPairs(w, pairs, account, 1, "")
 }
 
 // getStraightPubKey handles a getStraightPubKey RPC request by getting a straight public key
@@ -3190,19 +3166,8 @@ func validateAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 			result.SigsRequired = int32(reqSigs)
 		}
 	}
-	return result, nil
-}
 
-func DllCallValidateAddress(address string, w *wallet.Wallet) (string, error) {
-	cmd := &hcjson.ValidateAddressCmd{
-		Address: address,
-	}
-	_, err := validateAddress(cmd, w)
-	if err == nil {
-		return address, err
-	} else {
-		return "", err
-	}
+	return result, nil
 }
 
 // verifyMessage handles the verifymessage command by verifying the provided
@@ -3327,6 +3292,8 @@ func walletIsLocked(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return w.Locked(), nil
 }
 
+
+
 // walletLock handles a walletlock request by locking the all account
 // wallets, returning an error if any wallet is not encrypted (for example,
 // a watching-only wallet).
@@ -3388,3 +3355,56 @@ func decodeHexStr(hexStr string) ([]byte, error) {
 	}
 	return decoded, nil
 }
+
+//add by ycj 20180915
+//commonly used cmd request
+func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	//cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
+	//byteCmd,err:=hcjson.MarshalCmd(1,cmd)
+
+	byteCmd,err:=hcjson.MarshalCmd(1,icmd)
+	if(err!=nil){
+		return err,nil
+	}
+	strReq:=string(byteCmd)
+	strRsp := JsonCmdReqHcToOm(strReq)
+
+	var  response hcjson.Response
+	_=json.Unmarshal([]byte(strRsp),&response)
+	//strResult:=string(response.Result);
+	return response.Result,nil
+}
+
+func omni_getinfo(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	return omni_cmdReq(icmd,w)
+}
+
+func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
+
+	byteCmd,err:=hcjson.MarshalCmd(1,cmd)
+	if(err!=nil){
+		return err,nil
+	}
+	strReq:=string(byteCmd)
+	strRsp := JsonCmdReqHcToOm(strReq)
+
+	var  response hcjson.Response
+	_=json.Unmarshal([]byte(strRsp),&response)
+
+	return response.Result,nil
+	//return w.Locked(), nil
+}
+
+func omni_createpayload_issuancefixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	return omni_cmdReq(icmd,w)
+}
+
+func omni_listproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	return omni_cmdReq(icmd,w)
+}
+
+
+
+
+

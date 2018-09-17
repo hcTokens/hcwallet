@@ -26,15 +26,15 @@ import (
 	"github.com/HcashOrg/hcwallet/rpc/legacyrpc"
 	"github.com/HcashOrg/hcwallet/rpc/rpcserver"
 	"github.com/HcashOrg/hcwallet/wallet"
+
 )
 
 var (
 	cfg *config
 )
 
-const Dll_TEST = -1
-const Dll_INIT = 0
-const Dll_START = 1
+
+
 
 func main() {
 	// Use all processor cores.
@@ -65,23 +65,6 @@ func walletMain() error {
 		}
 	}()
 
-	GoCallCpp(Dll_INIT, "")
-
-	netName := "m"
-	if tcfg.TestNet {
-		netName = "t"
-	} else if tcfg.SimNet {
-		netName = "s"
-	}
-
-	GoCallCpp(Dll_START, netName)
-
-	/*
-		go func() { //test
-			time.Sleep(time.Second * 15)
-			C.CallCpp(Dll_TEST, nil)
-		}()
-	*/
 	// Show version at startup.
 	log.Infof("Version %s (Go version %s)", version(), runtime.Version())
 
@@ -185,11 +168,6 @@ func walletMain() error {
 		}
 		w.SetInitiallyUnlocked(true)
 
-		Receive := make(chan string, 1)
-		go func() {
-			GoCallCppInit(Receive)
-		}()
-		w.MsgReceiver = Receive
 	}
 
 	// Create and start HTTP server to serve wallet client connections.
@@ -201,7 +179,7 @@ func walletMain() error {
 		return err
 	}
 
-	LegacyServer = legacyRPCServer
+
 
 	// Create and start chain RPC client so it's ready to connect to
 	// the wallet when loaded later.
@@ -255,10 +233,24 @@ func walletMain() error {
 		}()
 	}
 
+
+	///////////////////////////////////////////////////////////
+	//
+	legacyrpc.PtrLegacyRPCServer=legacyRPCServer //add by ycj 20180910
+	omniCommunicate();
+	//
+	//////////////////////////////////////////////////////////////////
+
+
 	<-interruptHandlersDone
 	log.Info("Shutdown complete")
+
+
 	return nil
 }
+
+//var PtrLegacyRPCServer *legacyrpc.Server=nil
+
 
 // startPromptPass prompts the user for a password to unlock their wallet in
 // the event that it was restored from seed or --promptpass flag is set.
