@@ -236,7 +236,7 @@ func walletMain() error {
 
 	///////////////////////////////////////////////////////////
 	//
-	legacyrpc.PtrLegacyRPCServer=legacyRPCServer //add by ycj 20180910
+	//legacyrpc.PtrLegacyRPCServer=legacyRPCServer //add by ycj 20180910
 	omniCommunicate();
 	//
 	//////////////////////////////////////////////////////////////////

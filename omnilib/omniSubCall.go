@@ -1,4 +1,4 @@
-package legacyrpc
+package omnilib
 
 
 // #include <stdio.h>
@@ -8,11 +8,11 @@ package legacyrpc
 ///* #cgo LDFLAGS:  -L./libomni -lomni*/
 import "C"
 import (
-	"unsafe"
-	"time"
+	//"unsafe"
+	//"time"
 )
 
-var PtrLegacyRPCServer *Server=nil
+//var PtrLegacyRPCServer *Server=nil
 
 func JsonCmdReqHcToOm(strReq string) string{
 	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
@@ -30,6 +30,7 @@ func OmniStart(strArgs string){
 	C.COmniStart(C.CString(strArgs))
 }
 
+/* abolish callback to LegacyRPCServer
 //export JsonCmdReqOmToHc
 func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 
@@ -52,6 +53,7 @@ func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 
 	return cs
 }
+*/
 
 
 

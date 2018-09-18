@@ -13,9 +13,6 @@ FunSetCallback  funSetCallback=NULL;
 FunJsonCmdReq   funJsonCmdReq = NULL; //
 #define INDEX_CALLBACK_GoJsonCmdReq 1
 
-
-//extern char* GJsonCmdReq(char *pcReq);
-
 void CLoadLibAndInit()
 {
 	printf("in LoadDllStart\n");
@@ -34,11 +31,10 @@ void CLoadLibAndInit()
     printf("funJsonCmdReq=%d",funJsonCmdReq);
 
 
-    if(funSetCallback) //先setcallback后 omnistart
-       funSetCallback(INDEX_CALLBACK_GoJsonCmdReq,JsonCmdReqOmToHc);
+   // if(funSetCallback) //先setcallback后 omnistart
+      //funSetCallback(INDEX_CALLBACK_GoJsonCmdReq,JsonCmdReqOmToHc);
 
 
-    // myFunOmniStart 在DLL中声明的函数名
     //if(funOmniStart)
     //    funOmniStart(pcArgs);
 

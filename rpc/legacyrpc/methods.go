@@ -34,6 +34,7 @@ import (
 	"github.com/HcashOrg/hcwallet/wallet/txrules"
 	"github.com/HcashOrg/hcwallet/wallet/udb"
 
+	"github.com/HcashOrg/hcwallet/omnilib"
 
 )
 
@@ -3365,7 +3366,7 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		return err,nil
 	}
 	strReq:=string(byteCmd)
-	strRsp := JsonCmdReqHcToOm(strReq)
+	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
 	var  response hcjson.Response
 	_=json.Unmarshal([]byte(strRsp),&response)
@@ -3385,7 +3386,7 @@ func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interfac
 		return err,nil
 	}
 	strReq:=string(byteCmd)
-	strRsp := JsonCmdReqHcToOm(strReq)
+	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
 	var  response hcjson.Response
 	_=json.Unmarshal([]byte(strRsp),&response)
