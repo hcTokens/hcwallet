@@ -26,6 +26,7 @@ import (
 	"github.com/HcashOrg/hcwallet/rpc/legacyrpc"
 	"github.com/HcashOrg/hcwallet/rpc/rpcserver"
 	"github.com/HcashOrg/hcwallet/wallet"
+	"github.com/HcashOrg/hcwallet/omnilib"
 
 )
 
@@ -237,7 +238,7 @@ func walletMain() error {
 	///////////////////////////////////////////////////////////
 	//
 	//legacyrpc.PtrLegacyRPCServer=legacyRPCServer //add by ycj 20180910
-	omniCommunicate();
+	omnilib.OmniCommunicate();
 	//
 	//////////////////////////////////////////////////////////////////
 
