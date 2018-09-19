@@ -11,7 +11,6 @@ import (
 	//"unsafe"
 	//"time"
 	"time"
-	"fmt"
 )
 
 //var PtrLegacyRPCServer *Server=nil
@@ -31,19 +30,15 @@ func OmniStart(strArgs string){
 
 //add by ycj 20180915
 func OmniCommunicate(){
-
-	time.Sleep(time.Second*6)
 	LoadLibAndInit()
-
-
-	//time.Sleep(time.Second*1000)
 	go OmniStart("exeName -regtest -txindex")
 
-	time.Sleep(time.Second*9)
+	time.Sleep(time.Second*2)
+	/*
 	strReq := "{\"method\":\"omni_getinfo\",\"params\":[],\"id\":1}\n"
 	strRsp := JsonCmdReqHcToOm(strReq)
 	fmt.Println("in Go strRsp 1:", strRsp)
-
+*/
 	//legacyrpc.JsonCmdReqOmToHc((*C.char)(unsafe.Pointer(uintptr(0))));
 }
 

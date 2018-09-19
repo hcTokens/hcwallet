@@ -1247,6 +1247,7 @@ type (
 		changeAddr string
 		resp       chan createTxResponse
 		payLoad    []byte
+		fromAddress string
 	}
 	createMultisigTxRequest struct {
 		account   uint32
@@ -1353,8 +1354,9 @@ out:
 				txr.resp <- createTxResponse{nil, err}
 				continue
 			}
+			isRandom := len(txr.fromAddress) == 0
 			tx, err := w.txToOutputs(txr.outputs, txr.account,
-				txr.minconf, true, txr.changeAddr, txr.payLoad)
+				txr.minconf, isRandom, txr.changeAddr, txr.payLoad, txr.fromAddress)
 			heldUnlock.release()
 			txr.resp <- createTxResponse{tx, err}
 
@@ -1447,7 +1449,7 @@ func (w *Wallet) Consolidate(inputs int, account uint32,
 // function is serialized to prevent the creation of many transactions which
 // spend the same outputs.
 func (w *Wallet) CreateSimpleTx(account uint32, outputs []*wire.TxOut,
-	minconf int32, changeAddr string, payLoad []byte) (*txauthor.AuthoredTx, error) {
+	minconf int32, changeAddr string, payLoad []byte, fromAddress string) (*txauthor.AuthoredTx, error) {
 
 	req := createTxRequest{
 		account:    account,
@@ -1456,6 +1458,7 @@ func (w *Wallet) CreateSimpleTx(account uint32, outputs []*wire.TxOut,
 		changeAddr: changeAddr,
 		resp:       make(chan createTxResponse),
 		payLoad:    payLoad,
+		fromAddress:    fromAddress,
 	}
 	w.createTxRequests <- req
 	resp := <-req.resp
@@ -3773,7 +3776,7 @@ func (w *Wallet) TotalReceivedForAddr(addr hcutil.Address, minConf int32) (hcuti
 // SendOutputs creates and sends payment transactions. It returns the
 // transaction hash upon success
 func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
-	minconf int32, changeAddr string, payLoad []byte) (*chainhash.Hash, error) {
+	minconf int32, changeAddr string, payLoad []byte, fromAddress string) (*chainhash.Hash, error) {
 
 	relayFee := w.RelayFee()
 	for _, output := range outputs {
@@ -3785,7 +3788,7 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 
 	// Create transaction, replying with an error if the creation
 	// was not successful.
-	createdTx, err := w.CreateSimpleTx(account, outputs, minconf, changeAddr, payLoad)
+	createdTx, err := w.CreateSimpleTx(account, outputs, minconf, changeAddr, payLoad, fromAddress)
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,7 @@
 #include "omniproxy.h"
 
 
-typedef char* (WINAPI *FunJsonCmdReq)(char *);
+typedef const char* (WINAPI *FunJsonCmdReq)(char *);
 typedef int (WINAPI *FunOmniStart)(char *);
 typedef int (WINAPI *FunSetCallback)(unsigned int,void *);
 
@@ -17,7 +17,7 @@ void CLoadLibAndInit()
 {
 	printf("in LoadDllStart\n");
 
-	HINSTANCE hDllInst = LoadLibrary("omnicored.DLL");
+	HINSTANCE hDllInst = LoadLibrary("bitcoind.dll");
     if(!hDllInst)
     {
         //FreeLibrary(hDllInst);
@@ -27,23 +27,8 @@ void CLoadLibAndInit()
     funOmniStart = (FunOmniStart)GetProcAddress(hDllInst,"OmniStart");
     funJsonCmdReq= (FunJsonCmdReq)GetProcAddress(hDllInst,"JsonCmdReq");
     funSetCallback= (FunSetCallback)GetProcAddress(hDllInst,"SetCallback");
-    //以后如果需要,在dll里面加SetFunc(index,Func)，序号,函数,类似接口
+
     printf("funJsonCmdReq=%d",funJsonCmdReq);
-
-
-   // if(funSetCallback) //先setcallback后 omnistart
-      //funSetCallback(INDEX_CALLBACK_GoJsonCmdReq,JsonCmdReqOmToHc);
-
-
-    //if(funOmniStart)
-    //    funOmniStart(pcArgs);
-
-    /*
-	dll := syscall.MustLoadDLL("omnicored.dll")
-	procGreet := dll.MustFindProc("OmniStart")
-	procGreet.Call()
-	*/
-
     return;
 }
 
@@ -54,11 +39,14 @@ int COmniStart(char *pcArgs)
     return funOmniStart(pcArgs);
 }
 
-char* CJsonCmdReq(char *pcReq)
+const char* CJsonCmdReq(char *pcReq)
 {
     if(funJsonCmdReq==NULL)
         return NULL;
-    return funJsonCmdReq(pcReq);
+    const char* ret = funJsonCmdReq(pcReq);
+    printf("88888888888888888888888888888\n");
+    printf(ret);
+    return ret;
 };
 
 int CSetCallback(int iIndex,void* pCallback)
