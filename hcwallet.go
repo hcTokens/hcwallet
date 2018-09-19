@@ -23,19 +23,15 @@ import (
 	"github.com/HcashOrg/hcwallet/internal/prompt"
 	"github.com/HcashOrg/hcwallet/internal/zero"
 	ldr "github.com/HcashOrg/hcwallet/loader"
+	"github.com/HcashOrg/hcwallet/omnilib"
 	"github.com/HcashOrg/hcwallet/rpc/legacyrpc"
 	"github.com/HcashOrg/hcwallet/rpc/rpcserver"
 	"github.com/HcashOrg/hcwallet/wallet"
-	"github.com/HcashOrg/hcwallet/omnilib"
-
 )
 
 var (
 	cfg *config
 )
-
-
-
 
 func main() {
 	// Use all processor cores.
@@ -122,6 +118,7 @@ func walletMain() error {
 		StakePoolColdExtKey: cfg.StakePoolColdExtKey,
 		TicketFee:           cfg.TicketFee.ToCoin(),
 	}
+
 	loader := ldr.NewLoader(activeNet.Params, dbDir, stakeOptions,
 		cfg.AddrIdxScanLen, cfg.AllowHighFees, cfg.RelayFee.ToCoin())
 
@@ -180,8 +177,6 @@ func walletMain() error {
 		return err
 	}
 
-
-
 	// Create and start chain RPC client so it's ready to connect to
 	// the wallet when loaded later.
 	if !cfg.NoInitialLoad {
@@ -199,6 +194,10 @@ func walletMain() error {
 
 	if cfg.PipeRx != nil {
 		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
+	}
+
+	if cfg.EnableOmini {
+		omnilib.OmniCommunicate()
 	}
 
 	// Add interrupt handlers to shutdown the various process components
@@ -233,25 +232,13 @@ func walletMain() error {
 			simulateInterrupt()
 		}()
 	}
-
-
-	///////////////////////////////////////////////////////////
-	//
-	//legacyrpc.PtrLegacyRPCServer=legacyRPCServer //add by ycj 20180910
-	omnilib.OmniCommunicate();
-	//
-	//////////////////////////////////////////////////////////////////
-
-
 	<-interruptHandlersDone
 	log.Info("Shutdown complete")
-
 
 	return nil
 }
 
 //var PtrLegacyRPCServer *legacyrpc.Server=nil
-
 
 // startPromptPass prompts the user for a password to unlock their wallet in
 // the event that it was restored from seed or --promptpass flag is set.
