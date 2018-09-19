@@ -19,10 +19,6 @@ import (
 func JsonCmdReqHcToOm(strReq string) string{
 	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
 	return strRsp;
-	//C.CJsonCmdReq(C.CString("abc"));
-	//return main.CJsonCmdReqInGo("abc")
-	//C.getchar();
-	//return ""
 }
 func LoadLibAndInit(){
 	C.CLoadLibAndInit()
