@@ -9,6 +9,7 @@ import "C"
 import (
 	//"unsafe"
 	//"time"
+	"time"
 )
 
 //var PtrLegacyRPCServer *Server=nil
@@ -25,6 +26,7 @@ func OmniStart(strArgs string) {
 	C.COmniStart(C.CString(strArgs))
 }
 
+func OmniCommunicate() {
 //add by ycj 20180915
 	LoadLibAndInit()
 	go OmniStart("exeName -regtest -txindex")
