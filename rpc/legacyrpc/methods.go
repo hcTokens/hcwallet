@@ -35,7 +35,6 @@ import (
 	"github.com/HcashOrg/hcwallet/wallet/udb"
 
 	"github.com/HcashOrg/hcwallet/omnilib"
-
 )
 
 // API version constants
@@ -179,10 +178,10 @@ var rpcHandlers = map[string]struct {
 	"renameaccount":           {handler: renameAccount},
 	"walletislocked":          {handler: walletIsLocked},
 
-	"omni_getinfo":          {handler: omni_getinfo},//by ycj 20180915
+	"omni_getinfo":                     {handler: omni_getinfo}, //by ycj 20180915
 	"omni_createpayload_simplesend":    {handler: omni_createpayload_simplesend},
-	"omni_createpayload_issuancefixed":    {handler: omni_createpayload_issuancefixed},
-	"omni_listproperties":    {handler: omni_listproperties},
+	"omni_createpayload_issuancefixed": {handler: omni_createpayload_issuancefixed},
+	"omni_listproperties":              {handler: omni_listproperties},
 }
 
 // unimplemented handles an unimplemented RPC request with the
@@ -1979,7 +1978,7 @@ func sendPairs(w *wallet.Wallet, amounts map[string]hcutil.Amount,
 	if err != nil {
 		return "", err
 	}
-	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr,[]byte{})
+	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr, []byte{})
 	if err != nil {
 		if err == txrules.ErrAmountNegative {
 			return "", ErrNeedPositiveAmount
@@ -3358,52 +3357,43 @@ func decodeHexStr(hexStr string) ([]byte, error) {
 //add by ycj 20180915
 //commonly used cmd request
 func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	//cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
-	//byteCmd,err:=hcjson.MarshalCmd(1,cmd)
-
-	byteCmd,err:=hcjson.MarshalCmd(1,icmd)
-	if(err!=nil){
-		return err,nil
+	byteCmd, err := hcjson.MarshalCmd(1, icmd)
+	if err != nil {
+		return err, nil
 	}
-	strReq:=string(byteCmd)
+	strReq := string(byteCmd)
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
-	var  response hcjson.Response
-	_=json.Unmarshal([]byte(strRsp),&response)
+	var response hcjson.Response
+	_ = json.Unmarshal([]byte(strRsp), &response)
 	//strResult:=string(response.Result);
-	return response.Result,nil
+	return response.Result, nil
 }
 
 func omni_getinfo(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	return omni_cmdReq(icmd,w)
+	return omni_cmdReq(icmd, w)
 }
 
 func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
-
-	byteCmd,err:=hcjson.MarshalCmd(1,cmd)
-	if(err!=nil){
-		return err,nil
+	cmd := icmd.(*hcjson.OmniCreatepayloadSimplesendCmd)
+	byteCmd, err := hcjson.MarshalCmd(1, cmd)
+	if err != nil {
+		return err, nil
 	}
-	strReq:=string(byteCmd)
+	strReq := string(byteCmd)
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
-	var  response hcjson.Response
-	_=json.Unmarshal([]byte(strRsp),&response)
+	var response hcjson.Response
+	_ = json.Unmarshal([]byte(strRsp), &response)
 
-	return response.Result,nil
+	return response.Result, nil
 	//return w.Locked(), nil
 }
 
 func omni_createpayload_issuancefixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	return omni_cmdReq(icmd,w)
+	return omni_cmdReq(icmd, w)
 }
 
 func omni_listproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	return omni_cmdReq(icmd,w)
+	return omni_cmdReq(icmd, w)
 }
-
-
-
-
-

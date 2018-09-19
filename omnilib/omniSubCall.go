@@ -1,6 +1,5 @@
 package omnilib
 
-
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include "./omniproxy.h"
@@ -10,47 +9,38 @@ import "C"
 import (
 	//"unsafe"
 	//"time"
-	"time"
 	"fmt"
 )
 
 //var PtrLegacyRPCServer *Server=nil
 
-func JsonCmdReqHcToOm(strReq string) string{
-	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
-	return strRsp;
+func JsonCmdReqHcToOm(strReq string) string {
+	strRsp := C.GoString(C.CJsonCmdReq(C.CString(strReq)))
+	return strRsp
 	//C.CJsonCmdReq(C.CString("abc"));
 	//return main.CJsonCmdReqInGo("abc")
 	//C.getchar();
 	//return ""
 }
-func LoadLibAndInit(){
+func LoadLibAndInit() {
 	C.CLoadLibAndInit()
 }
 
-func OmniStart(strArgs string){
+func OmniStart(strArgs string) {
 	C.COmniStart(C.CString(strArgs))
 }
 
-
 //add by ycj 20180915
-func OmniCommunicate(){
+func OmniCommunicate() {
 
-	time.Sleep(time.Second*6)
 	LoadLibAndInit()
-
-
-	//time.Sleep(time.Second*1000)
 	go OmniStart("exeName -regtest -txindex")
 
-	time.Sleep(time.Second*9)
 	strReq := "{\"method\":\"omni_getinfo\",\"params\":[],\"id\":1}\n"
 	strRsp := JsonCmdReqHcToOm(strReq)
 	fmt.Println("in Go strRsp 1:", strRsp)
-
 	//legacyrpc.JsonCmdReqOmToHc((*C.char)(unsafe.Pointer(uintptr(0))));
 }
-
 
 /* abolish callback to LegacyRPCServer
 //export JsonCmdReqOmToHc
@@ -76,7 +66,3 @@ func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 	return cs
 }
 */
-
-
-
-
