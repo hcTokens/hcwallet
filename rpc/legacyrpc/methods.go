@@ -182,6 +182,7 @@ var rpcHandlers = map[string]struct {
 	"omni_createpayload_simplesend":    {handler: omni_createpayload_simplesend},
 	"omni_createpayload_issuancefixed": {handler: omni_createpayload_issuancefixed},
 	"omni_listproperties":              {handler: omni_listproperties},
+	"omni_sendissuancefixed":           {handler: omniSendIssuanceFixed},
 }
 
 // unimplemented handles an unimplemented RPC request with the
@@ -3396,4 +3397,83 @@ func omni_createpayload_issuancefixed(icmd interface{}, w *wallet.Wallet) (inter
 
 func omni_listproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return omni_cmdReq(icmd, w)
+}
+
+func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	msg, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return "", err
+	}
+
+	switch v := msg.(type) {
+	case json.RawMessage:
+		payload, err := v.MarshalJSON()
+		if err != nil {
+			return "", err
+		}
+		fmt.Println("omniSendIssuanceFixed:", string(payload))
+		payload = payload[1 : len(payload)-1]
+		fmt.Println("omniSendIssuanceFixed:", string(payload))
+
+		return sendIssuanceFixed(w, []byte(payload))
+	default:
+		fmt.Printf("%T", msg)
+		return "", fmt.Errorf("data from omni err type:%T", msg)
+	}
+}
+
+//
+func sendIssuanceFixed(w *wallet.Wallet, payLoad []byte) (string, error) {
+	account := uint32(udb.DefaultAccountNum)
+
+	var changeAddr string
+	addr, err := w.FirstAddr(account)
+	if err != nil {
+		return "", err
+	}
+	changeAddr = addr.String()
+	dstAddr := changeAddr
+
+	amt, err := hcutil.NewAmount(20)
+	if err != nil {
+		return "", err
+	}
+	// Mock up map of address and amount pairs.
+	pairs := map[string]hcutil.Amount{
+		dstAddr: hcutil.Amount(amt),
+	}
+
+	// sendtoaddress always spends from the default account, this matches bitcoind
+	return sendPairsWithPayLoad(w, pairs, account, 1, changeAddr, payLoad)
+}
+
+// sendPairsWithPayLoad creates and sends payment transactions.
+// It returns the transaction hash in string format upon success
+// All errors are returned in hcjson.RPCError format
+func sendPairsWithPayLoad(w *wallet.Wallet, amounts map[string]hcutil.Amount,
+	account uint32, minconf int32, changeAddr string, playlod []byte) (string, error) {
+	outputs, err := makeOutputs(amounts, w.ChainParams())
+	if err != nil {
+		return "", err
+	}
+	txSha, err := w.SendOutputs(outputs, account, minconf, changeAddr, playlod)
+	if err != nil {
+		if err == txrules.ErrAmountNegative {
+			return "", ErrNeedPositiveAmount
+		}
+		if apperrors.IsError(err, apperrors.ErrLocked) {
+			return "", &ErrWalletUnlockNeeded
+		}
+		switch err.(type) {
+		case hcjson.RPCError:
+			return "", err
+		}
+
+		return "", &hcjson.RPCError{
+			Code:    hcjson.ErrRPCInternal.Code,
+			Message: err.Error(),
+		}
+	}
+
+	return txSha.String(), err
 }
