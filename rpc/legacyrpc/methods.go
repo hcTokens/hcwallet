@@ -3380,7 +3380,7 @@ func omni_getinfo(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 }
 
 func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
+	cmd := icmd.(*hcjson.OmniCreatepayloadSimplesendCmd)
 	byteCmd, err := hcjson.MarshalCmd(1, cmd)
 	if err != nil {
 		return err, nil
@@ -3424,7 +3424,7 @@ func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 			FromAddress:   string(addr[1 : len(addr)-1]),
 			ToAddress:     string(addr[1 : len(addr)-1]),
 			ChangeAddress: string(addr[1 : len(addr)-1]),
-			Amount:        10,
+			Amount:        1,
 		}
 		return omniSendToAddress(cmd, w, payLoad)
 	}
@@ -3532,24 +3532,44 @@ func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 }
 
 func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	msg, err :=  omni_cmdReq(icmd, w)
-	if err != nil {
-		return nil, err
-	}
-	switch v := msg.(type) {
-	case json.RawMessage:
-		payload, err := v.MarshalJSON()
+	ret, err := omni_cmdReq(icmd, w)
+	if err == nil{
+		byteCmd, err := hcjson.MarshalCmd(1, icmd)
 		if err != nil {
-			return "", err
+			return err, nil
+		}
+		rv := reflect.ValueOf(ret)
+		if rv.IsNil() {
+			return nil, fmt.Errorf("value error")
+		}
+		buf := rv.Bytes()
+		fmt.Println(string(buf))
+		payLoad, err := hex.DecodeString(string(buf[1: len(buf) - 1]))
+
+		var req hcjson.Request
+		err = json.Unmarshal(byteCmd, &req)
+
+		fromAddress := string(req.Params[0][1 : len(req.Params[0])-1])
+		toAddress := string(req.Params[1][1 : len(req.Params[1])-1])
+
+		_, err = decodeAddress(fromAddress, w.ChainParams())
+		if err != nil {
+			// Use result zero value (IsValid=false).
+			return nil, err
+		}
+		_, err = decodeAddress(toAddress, w.ChainParams())
+		if err != nil {
+			// Use result zero value (IsValid=false).
+			return nil, err
 		}
 
-		payload = payload[1:len(payload)-1]
-
-		//
-
-		return sendIssuanceFixed(w, []byte(payload))
-	default:
-		fmt.Printf("%T", msg)
-		return "", fmt.Errorf("data from omni err type:%T", msg)
+		cmd := &SendFromAddressToAddressCmd{
+			FromAddress:   fromAddress,
+			ToAddress:     toAddress,
+			ChangeAddress: fromAddress,
+			Amount:        1,
+		}
+		return omniSendToAddress(cmd, w, payLoad)
 	}
+	return ret, err
 }
