@@ -3394,7 +3394,7 @@ func omni_getinfo(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 }
 
 func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	cmd := icmd.(*hcjson.OmniCreatepayloadSimplesendCmd)
+	cmd := icmd.(*hcjson.Omni_createpayload_simplesendCmd)
 	byteCmd, err := hcjson.MarshalCmd(1, cmd)
 	if err != nil {
 		return err, nil
