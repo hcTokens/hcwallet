@@ -196,7 +196,7 @@ func walletMain() error {
 		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
 	}
 
-	if cfg.EnableOmini || true{
+	if cfg.EnableOmini || cfg.TestNet{
 		omnilib.OmniCommunicate()
 	}
 

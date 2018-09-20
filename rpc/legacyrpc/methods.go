@@ -183,7 +183,10 @@ var rpcHandlers = map[string]struct {
 	"omni_createpayload_simplesend":    {handler: omni_createpayload_simplesend},
 	"omni_createpayload_issuancefixed": {handler: omni_createpayload_issuancefixed},
 	"omni_listproperties":              {handler: omni_listproperties},
-	"omni_sendissuancefixed":           {handler: omniSendIssuanceFixed},
+
+	"omni_sendissuancefixed": {handler: omniSendIssuanceFixed},
+	"omni_getbalance":        {handler: omniGetBalance},
+	"omni_send":              {handler: omniSend},
 }
 
 // unimplemented handles an unimplemented RPC request with the
@@ -3524,3 +3527,29 @@ func omniSendToAddress(cmd *SendFromAddressToAddressCmd, w *wallet.Wallet, payLo
 	return sendPairs(w, pairs, account, 1, cmd.ChangeAddress, payLoad, cmd.FromAddress)
 }
 
+func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	return omni_cmdReq(icmd, w)
+}
+
+func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	msg, err :=  omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	switch v := msg.(type) {
+	case json.RawMessage:
+		payload, err := v.MarshalJSON()
+		if err != nil {
+			return "", err
+		}
+
+		payload = payload[1:len(payload)-1]
+
+		//
+
+		return sendIssuanceFixed(w, []byte(payload))
+	default:
+		fmt.Printf("%T", msg)
+		return "", fmt.Errorf("data from omni err type:%T", msg)
+	}
+}
