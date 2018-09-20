@@ -14,6 +14,7 @@ import (
 
 	"encoding/hex"
 	"encoding/json"
+
 	"github.com/HcashOrg/hcd/blockchain/stake"
 	"github.com/HcashOrg/hcd/chaincfg/chainhash"
 	"github.com/HcashOrg/hcd/hcutil"
@@ -21,10 +22,10 @@ import (
 	"github.com/HcashOrg/hcd/wire"
 	"github.com/HcashOrg/hcwallet/apperrors"
 	"github.com/HcashOrg/hcwallet/chain"
+	"github.com/HcashOrg/hcwallet/omnilib"
 	"github.com/HcashOrg/hcwallet/wallet/txrules"
 	"github.com/HcashOrg/hcwallet/wallet/udb"
 	"github.com/HcashOrg/hcwallet/walletdb"
-	"github.com/HcashOrg/hcwallet/omnilib"
 )
 
 func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
@@ -446,7 +447,7 @@ func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, seriali
 }
 
 type OmniParamCmd struct {
-	Method 		 string    `json:"method"`
+	Method       string `json:"method"`
 	Sender       string
 	Reference    string
 	TxHash       string
@@ -458,8 +459,8 @@ type OmniParamCmd struct {
 	Time         int64
 }
 
-func GetPayLoadData(PkScript []byte) (bool, []byte){
-	if 	PkScript[0] == 106 &&
+func GetPayLoadData(PkScript []byte) (bool, []byte) {
+	if PkScript[0] == 106 &&
 		PkScript[2] == 111 &&
 		PkScript[3] == 109 &&
 		PkScript[4] == 110 &&
@@ -474,54 +475,59 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 		return err
 	}
 
+	sendIn := rec.MsgTx.TxIn[0]
+	vout, err := w.chainClient.GetTxOut(&sendIn.PreviousOutPoint.Hash, sendIn.PreviousOutPoint.Index, false)
+	//_, pubkeyAddrs := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.ScriptPubKey.Hex, w.ChainParams())
+	sendor := vout.ScriptPubKey.Addresses[0]
+
 	for _, tx := range rec.MsgTx.TxOut {
 		ok, payLoad := GetPayLoadData(tx.PkScript)
-		if ok{
+		if ok {
 			var blockHeader wire.BlockHeader
 			err := blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
 			if err != nil {
 				return err
 			}
 
-			var allIn, allOut int64
-			var fromAddress, toAddress string
-			for _, tx := range rec.MsgTx.TxIn {
-				allIn += tx.ValueIn
-			}
+			var toAddress string
 			index := int(0)
 			i := int(0)
+			isSetMultyNull := false
+			isSetFromAddress := false
 			for _, tx := range rec.MsgTx.TxOut {
-				allOut += tx.Value
 				ok, _ = GetPayLoadData(tx.PkScript)
-				if ok  {
-					index = i
-				}
-				_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(
-					txscript.DefaultScriptVersion, tx.PkScript,
-					w.ChainParams())
-				if err == nil && len(pubkeyAddrs) == 1{
-					if i == 0 {
+				if ok {
+					//nulldata
+					if !isSetMultyNull {
+						index = i
+						isSetMultyNull = true
+					} else {
+						return errors.New("not allow more than one nulldata script in omini transaction")
+					}
+				} else {
+					if !isSetFromAddress {
+						_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, tx.PkScript, w.ChainParams())
+						if err != nil {
+							return err
+						}
 						toAddress = pubkeyAddrs[0].String()
-					} else if i == 1 {
-						fromAddress = pubkeyAddrs[0].String()
+						isSetFromAddress = false
 					}
 				}
 				i++
 			}
-			if len(fromAddress) < 1 || len(toAddress) <1{
-				return fmt.Errorf("Addresses are not standard ")
-			}
+
 			bHash := blockHeader.BlockHash()
 			group := OmniParamCmd{
-				Method:		  "ProcessTx",
-				Sender:       fromAddress,
+				Method:       "ProcessTx",
+				Sender:       sendor,
 				Reference:    toAddress,
 				TxHash:       hex.EncodeToString(rec.Hash[:]),
 				BlockHash:    hex.EncodeToString(bHash[:]),
 				Block:        blockHeader.Height,
 				Idx:          index,
 				ScriptEncode: hex.EncodeToString(payLoad),
-				Fee:          allIn - allOut,
+				Fee:          1,
 				Time:         blockHeader.Timestamp.Unix(),
 			}
 			b, err := json.Marshal(group)
@@ -741,9 +747,7 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 	// Handle input scripts that contain P2PKs that we care about.
 	for i, input := range rec.MsgTx.TxIn {
 		if txscript.IsMultisigSigScript(input.SignatureScript) {
-			rs, err :=
-				txscript.MultisigRedeemScriptFromScriptSig(
-					input.SignatureScript)
+			rs, err := txscript.MultisigRedeemScriptFromScriptSig(input.SignatureScript)
 			if err != nil {
 				return err
 			}
