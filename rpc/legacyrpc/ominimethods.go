@@ -82,14 +82,11 @@ func omni_listproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error
 
 func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	txIdBytes, err := omni_cmdReq(icmd, w)
+	sendIssueCmd := icmd.(*hcjson.OmniSendissuancefixedCmd)
 	if err != nil {
 		return err, nil
 	}
 
-	byteCmd, err := hcjson.MarshalCmd(1, icmd)
-	if err != nil {
-		return err, nil
-	}
 	txidStr := ""
 	err = json.Unmarshal(txIdBytes, &txidStr)
 	if err != nil {
@@ -97,14 +94,14 @@ func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	}
 
 	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return err, nil
+	}
 
-	var req hcjson.Request
-	err = json.Unmarshal(byteCmd, &req)
-	addr := req.Params[0]
 	sendParams := &SendFromAddressToAddress{
-		FromAddress:   string(addr[1 : len(addr)-1]),
-		ToAddress:     string(addr[1 : len(addr)-1]),
-		ChangeAddress: string(addr[1 : len(addr)-1]),
+		FromAddress:   sendIssueCmd.Fromaddress,
+		ToAddress:     sendIssueCmd.Fromaddress,
+		ChangeAddress: sendIssueCmd.Fromaddress,
 	}
 	return omniSendToAddress(sendParams, w, payLoad)
 }
@@ -139,21 +136,31 @@ func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 }
 
 func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	msg, err := omni_cmdReq(icmd, w)
+	omniSendCmd := icmd.(*hcjson.OmniSendCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return ret, err
+	}
+
+	payLoad, err := hex.DecodeString(string(ret))
+
+	_, err = decodeAddress(omniSendCmd.Fromaddress, w.ChainParams())
 	if err != nil {
 		return nil, err
 	}
 
-	payload, err := msg.MarshalJSON()
+	_, err = decodeAddress(omniSendCmd.Toaddress, w.ChainParams())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	payload = payload[1 : len(payload)-1]
-
-	//
-
-	return sendIssuanceFixed(w, []byte(payload))
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendCmd.Fromaddress,
+		ToAddress:     omniSendCmd.Toaddress,
+		ChangeAddress: omniSendCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(cmd, w, payLoad)
 }
 
 type SendFromAddressToAddress struct {

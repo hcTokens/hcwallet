@@ -475,8 +475,21 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 		return err
 	}
 
+	if len(rec.MsgTx.TxIn) == 0 {
+		return nil
+	}
+
 	sendIn := rec.MsgTx.TxIn[0]
-	vout, err := w.chainClient.GetTxOut(&sendIn.PreviousOutPoint.Hash, sendIn.PreviousOutPoint.Index, false)
+
+	if (sendIn.PreviousOutPoint.Hash == chainhash.Hash{}) {
+		return nil
+	}
+	
+	vout, err := w.chainClient.GetTxOut(&sendIn.PreviousOutPoint.Hash, sendIn.PreviousOutPoint.Index, true)
+	if err != nil {
+		fmt.Printf(err.Error())
+		return err
+	}
 	//_, pubkeyAddrs := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.ScriptPubKey.Hex, w.ChainParams())
 	sendor := vout.ScriptPubKey.Addresses[0]
 
