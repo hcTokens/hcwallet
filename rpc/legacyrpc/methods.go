@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"sync"
 	"time"
 
@@ -3365,24 +3366,6 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	strReq := string(byteCmd)
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
-	payLoad, err := hex.DecodeString(strRsp)
-	if err == nil{
-		/*
-	{"jsonrpc":"1.0","method":"omni_sendissuancefixed","params":["Tsk6gAJ7X9wjihFPo4nt5HHa9GNZysTyugn",2,1,0,"Companies","Bitcoin Mining","Quantum Miner","","","1000000"],"id":1}
-
-	*/
-		var req hcjson.Request
-		err = json.Unmarshal(byteCmd, &req)
-		addr := req.Params[0]
-		cmd := &SendFromAddressToAddressCmd{
-			FromAddress: string(addr[1:len(addr) - 1]),
-			ToAddress: string(addr[1:len(addr) - 1]),
-			ChangeAddress:string(addr[1:len(addr) - 1]),
-			Amount:  10,
-		}
-		fmt.Println(cmd)
-		return omniSendToAddress(cmd, w, payLoad)
-	}
 	var  response hcjson.Response
 	_=json.Unmarshal([]byte(strRsp),&response)
 	//strResult:=string(response.Result);
@@ -3418,29 +3401,31 @@ func omni_listproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error
 }
 
 func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	return omni_cmdReq(icmd, w)
-
-	/*
-	if err != nil {
-			return "", err
+	ret, err := omni_cmdReq(icmd, w)
+	if err == nil{
+		byteCmd, err := hcjson.MarshalCmd(1, icmd)
+		if err != nil {
+			return err, nil
 		}
-
-		switch v := msg.(type) {
-		case json.RawMessage:
-			payload, err := v.MarshalJSON()
-			if err != nil {
-				return "", err
-			}
-			fmt.Println("omniSendIssuanceFixed:", string(payload))
-			payload = payload[1:len(payload)-1]
-			fmt.Println("omniSendIssuanceFixed:", string(payload))
-
-			return sendIssuanceFixed(w, []byte(payload))
-		default:
-			fmt.Printf("%T", msg)
-			return "", fmt.Errorf("data from omni err type:%T", msg)
+		rv := reflect.ValueOf(ret)
+		if rv.IsNil() {
+			return nil, fmt.Errorf("value error")
 		}
-	*/
+		buf := rv.Bytes()
+		payLoad, err := hex.DecodeString(string(buf[1: len(buf) - 1]))
+
+		var req hcjson.Request
+		err = json.Unmarshal(byteCmd, &req)
+		addr := req.Params[0]
+		cmd := &SendFromAddressToAddressCmd{
+			FromAddress:   string(addr[1 : len(addr)-1]),
+			ToAddress:     string(addr[1 : len(addr)-1]),
+			ChangeAddress: string(addr[1 : len(addr)-1]),
+			Amount:        10,
+		}
+		return omniSendToAddress(cmd, w, payLoad)
+	}
+	return ret, err
 }
 
 //
