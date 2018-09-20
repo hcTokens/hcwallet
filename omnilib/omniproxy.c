@@ -17,7 +17,7 @@ void CLoadLibAndInit()
 {
 	printf("in LoadDllStart\n");
 
-	HINSTANCE hDllInst = LoadLibrary("omnicored.dll");
+	HINSTANCE hDllInst = LoadLibrary("bitcoind.dll");
     if(!hDllInst)
     {
         //FreeLibrary(hDllInst);
