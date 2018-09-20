@@ -1241,12 +1241,11 @@ type (
 		resp    chan consolidateResponse
 	}
 	createTxRequest struct {
-		account    uint32
-		outputs    []*wire.TxOut
-		minconf    int32
-		changeAddr string
-		resp       chan createTxResponse
-		payLoad    []byte
+		account     uint32
+		outputs     []*wire.TxOut
+		minconf     int32
+		changeAddr  string
+		resp        chan createTxResponse
 		fromAddress string
 	}
 	createMultisigTxRequest struct {
@@ -1356,7 +1355,7 @@ out:
 			}
 			isRandom := len(txr.fromAddress) == 0
 			tx, err := w.txToOutputs(txr.outputs, txr.account,
-				txr.minconf, isRandom, txr.changeAddr, txr.payLoad, txr.fromAddress)
+				txr.minconf, isRandom, txr.changeAddr, txr.fromAddress)
 			heldUnlock.release()
 			txr.resp <- createTxResponse{tx, err}
 
@@ -1449,16 +1448,15 @@ func (w *Wallet) Consolidate(inputs int, account uint32,
 // function is serialized to prevent the creation of many transactions which
 // spend the same outputs.
 func (w *Wallet) CreateSimpleTx(account uint32, outputs []*wire.TxOut,
-	minconf int32, changeAddr string, payLoad []byte, fromAddress string) (*txauthor.AuthoredTx, error) {
+	minconf int32, changeAddr string, fromAddress string) (*txauthor.AuthoredTx, error) {
 
 	req := createTxRequest{
-		account:    account,
-		outputs:    outputs,
-		minconf:    minconf,
-		changeAddr: changeAddr,
-		resp:       make(chan createTxResponse),
-		payLoad:    payLoad,
-		fromAddress:    fromAddress,
+		account:     account,
+		outputs:     outputs,
+		minconf:     minconf,
+		changeAddr:  changeAddr,
+		resp:        make(chan createTxResponse),
+		fromAddress: fromAddress,
 	}
 	w.createTxRequests <- req
 	resp := <-req.resp
@@ -3776,7 +3774,7 @@ func (w *Wallet) TotalReceivedForAddr(addr hcutil.Address, minConf int32) (hcuti
 // SendOutputs creates and sends payment transactions. It returns the
 // transaction hash upon success
 func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
-	minconf int32, changeAddr string, payLoad []byte, fromAddress string) (*chainhash.Hash, error) {
+	minconf int32, changeAddr string, fromAddress string) (*chainhash.Hash, error) {
 
 	relayFee := w.RelayFee()
 	for _, output := range outputs {
@@ -3788,7 +3786,7 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 
 	// Create transaction, replying with an error if the creation
 	// was not successful.
-	createdTx, err := w.CreateSimpleTx(account, outputs, minconf, changeAddr, payLoad, fromAddress)
+	createdTx, err := w.CreateSimpleTx(account, outputs, minconf, changeAddr, fromAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -3797,6 +3795,19 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 	// serialize it again.
 	hash := createdTx.Tx.TxHash()
 	return &hash, nil
+}
+
+func (w *Wallet) MakeNulldataOutput(payLoad []byte) (*wire.TxOut, error) {
+	payLoadScript, err := txscript.GenerateProvablyPruneableOut(payLoad)
+	if err == nil {
+		payLoadTx := &wire.TxOut{
+			Value:    int64(0),
+			PkScript: payLoadScript,
+		}
+		return payLoadTx, nil
+	} else {
+		return nil, err
+	}
 }
 
 // SignatureError records the underlying error when validating a transaction

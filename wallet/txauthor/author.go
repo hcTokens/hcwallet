@@ -98,7 +98,7 @@ type ChangeSource func(dbtx walletdb.ReadWriteTx) ([]byte, uint16, error)
 //
 // BUGS: Fee estimation may be off when redeeming non-compressed P2PKH outputs.
 func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb hcutil.Amount,
-	fetchInputs InputSource, fetchChange ChangeSource, accType uint8, params *chaincfg.Params, sdb txscript.ScriptDB, payLoad []byte, fromAddress string) (*AuthoredTx, error) {
+	fetchInputs InputSource, fetchChange ChangeSource, accType uint8, params *chaincfg.Params, sdb txscript.ScriptDB, fromAddress string) (*AuthoredTx, error) {
 
 	targetAmount := h.SumOutputValues(outputs)
 	if accType != udb.AcctypeBliss && accType != udb.AcctypeEc {
@@ -110,7 +110,7 @@ func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb hcutil.Amount,
 	targetFee := txrules.FeeForSerializeSize(relayFeePerKb, estimatedSize)
 
 	for {
-		inputAmount, inputs, scripts, err := fetchInputs(targetAmount + targetFee, fromAddress)
+		inputAmount, inputs, scripts, err := fetchInputs(targetAmount+targetFee, fromAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -165,16 +165,6 @@ func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb hcutil.Amount,
 			changeIndex = l
 		}
 
-		if len(payLoad) > 0 {
-			payLoadScript, err := txscript.GenerateProvablyPruneableOut(payLoad)
-			if err == nil {
-				payLoadTx := &wire.TxOut{
-					Value:    int64(0),
-					PkScript: payLoadScript,
-				}
-				unsignedTransaction.TxOut = append(unsignedTransaction.TxOut, payLoadTx)
-			}
-		}
 		estSignedSize, _ := txsizes.EstimateSerializeSizeByInputStripts(scripts, unsignedTransaction.TxOut, false, params, sdb)
 		return &AuthoredTx{
 			Tx:                           unsignedTransaction,
