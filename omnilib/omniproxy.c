@@ -17,7 +17,7 @@ void CLoadLibAndInit()
 {
 	printf("in LoadDllStart\n");
 
-	HINSTANCE hDllInst = LoadLibrary("omnicoind.dll");
+	HINSTANCE hDllInst = LoadLibrary("omnicored.dll");
     if(!hDllInst)
     {
         //FreeLibrary(hDllInst);
