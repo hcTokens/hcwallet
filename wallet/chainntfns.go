@@ -492,6 +492,9 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 		return err
 	}
 	//_, pubkeyAddrs := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.ScriptPubKey.Hex, w.ChainParams())
+	if len(vout.ScriptPubKey.Addresses) == 0 {
+		return errors.New("must assign addresss as sendfrom ")
+	}
 	sendor := vout.ScriptPubKey.Addresses[0]
 	var toAddress string
 	index := int(0)
