@@ -869,3 +869,7 @@ func OmniSetautocommit(icmd interface{}, w *wallet.Wallet) (interface{}, error) 
 	_ = icmd.(*hcjson.OmniSetautocommitCmd)
 	return omni_cmdReq(icmd, w)
 }
+func OmniReadAllTxHash(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	//var cmd hcjson.OmniReadAllTxHashCmd
+	return omni_cmdReq(icmd, w)
+}

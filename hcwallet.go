@@ -155,8 +155,6 @@ func walletMain() error {
 			passphrase = []byte(cfg.Pass)
 		}
 
-		//passphrase := []byte("111111")
-
 		// Load the wallet database.  It must have been created already
 		// or this will return an appropriate error.
 		w, err := loader.OpenExistingWallet(walletPass, passphrase)
@@ -198,6 +196,16 @@ func walletMain() error {
 
 	if cfg.EnableOmini || cfg.TestNet{
 		omnilib.OmniCommunicate()
+	}
+
+	w, b := loader.LoadedWallet()
+	if b == false {
+		return fmt.Errorf("failed to load wallet")
+	}
+	err = recoverOmniData(w)
+	if err != nil{
+		log.Errorf("Failed to recoverOmniData: %v", err)
+		return err
 	}
 
 	// Add interrupt handlers to shutdown the various process components
@@ -416,4 +424,50 @@ func startChainRPC(certs []byte) (*chain.RPCClient, error) {
 	}
 	err = rpcc.Start()
 	return rpcc, err
+}
+
+func recoverOmniData(w *wallet.Wallet) error {
+	// 1 read hash
+	var cmd hcjson.OmniReadAllTxHashCmd
+
+	strResponse, err := legacyrpc.OmniReadAllTxHash(&cmd,w)
+	if err != nil{
+		return err
+	}
+
+	rv := reflect.ValueOf(strResponse)
+	if rv.IsNil() {
+		return fmt.Errorf("OmniData value error")
+	}
+	buf := rv.Bytes()
+	buf = buf[1: len(buf) - 1]
+	Hashs := strings.Split(string(buf), ":")
+
+	for _, txHash := range Hashs {
+		txSha, err := chainhash.NewHashFromStr(txHash)
+		if err != nil {
+			return err
+		}
+
+		//2 read tx
+		txd, err := wallet.UnstableAPI(w).TxDetails(txSha)
+		if err != nil {
+			return err
+		}
+		if txd == nil {
+			return legacyrpc.ErrNoTransactionInfo
+		}
+
+		// 3 process tx
+		var buf bytes.Buffer
+		buf.Grow(txd.MsgTx.SerializeSize())
+		err = txd.MsgTx.Serialize(&buf)
+		err = w.ProcessPayLoadTransaction(buf.Bytes(), txd.Block.Hash, uint32(txd.Block.Height), txd.Block.Time.Unix())
+		if err != nil {
+			log.Error("recover omni data err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
 }

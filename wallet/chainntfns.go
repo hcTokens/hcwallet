@@ -41,7 +41,13 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 			err = w.onBlockConnected(n.BlockHeader, n.Transactions)
 			if err == nil {
 				for _, serializedTx := range n.Transactions {
-					w.ProcessPayLoadTransaction(serializedTx, n.BlockHeader)
+					var blockHeader wire.BlockHeader
+					err := blockHeader.Deserialize(bytes.NewReader(n.BlockHeader))
+					if err != nil {
+						log.Infof("blockconnected err :%s", err.Error())
+						break
+					}
+					w.ProcessPayLoadTransaction(serializedTx, blockHeader.BlockHash(), blockHeader.Height, blockHeader.Timestamp.Unix())
 				}
 				err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 					return w.watchFutureAddresses(tx)
@@ -470,7 +476,8 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	}
 	return false, nil
 }
-func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockHeader []byte) error {
+
+func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, blockHash chainhash.Hash , blockHeight uint32, blockTime int64) error {
 	rec, err := udb.NewTxRecord(serializedTx, time.Now())
 	if err != nil {
 		return err
@@ -501,11 +508,6 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	isSetMultyNull := false
 	isSetToAddress := false
 	var payLoad []byte
-	var blockHeader wire.BlockHeader
-	err = blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
-	if err != nil {
-		return err
-	}
 
 	for i, tx := range rec.MsgTx.TxOut {
 		ok, payLoad2 := GetPayLoadData(tx.PkScript)
@@ -530,17 +532,17 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 		}
 	}
 
-	bHash := blockHeader.BlockHash()
+	bHash := blockHash
 	params := make([]interface{}, 0, 10)
 	params = append(params, sendor)
 	params = append(params, toAddress)
 	params = append(params, hex.EncodeToString(rec.Hash[:]))
 	params = append(params, hex.EncodeToString(bHash[:]))
-	params = append(params, blockHeader.Height)
+	params = append(params, blockHeight)
 	params = append(params, index)
 	params = append(params, hex.EncodeToString(payLoad))
 	params = append(params, 1)
-	params = append(params, blockHeader.Timestamp.Unix())
+	params = append(params, blockTime)
 
 	cmd, err := hcjson.NewCmd("omni_processtx", params...)
 	if err != nil {
