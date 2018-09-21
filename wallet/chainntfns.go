@@ -148,7 +148,7 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 		if err != nil {
 			return err
 		}
-		w.processOminiTransaction(serializedTx, header)
+		w.ProcessOminiTransaction(serializedTx, &blockMeta)
 	}
 
 	return nil
@@ -467,7 +467,7 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	return false, nil
 }
 
-func (w *Wallet) processOminiTransaction(serializedTx []byte, blockHeader wire.BlockHeader) error {
+func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.BlockMeta) error {
 	rec, err := udb.NewTxRecord(serializedTx, time.Now())
 	if err != nil {
 		return err
@@ -488,6 +488,7 @@ func (w *Wallet) processOminiTransaction(serializedTx []byte, blockHeader wire.B
 		return err
 	}
 	vout := txDetail.TxRecord.MsgTx.TxOut[sendIn.PreviousOutPoint.Index]
+
 	_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.PkScript, w.ChainParams())
 	if err != nil {
 		fmt.Printf(err.Error())
@@ -528,15 +529,14 @@ func (w *Wallet) processOminiTransaction(serializedTx []byte, blockHeader wire.B
 		}
 	}
 
-	bHash := blockHeader.BlockHash()
 	params := []interface{}{
 		sendor,
 		toAddress,
 		hex.EncodeToString(rec.Hash[:]),
-		hex.EncodeToString(bHash[:]),
-		blockHeader.Height, index, hex.EncodeToString(payLoad),
+		hex.EncodeToString(blockMeta.Hash[:]),
+		blockMeta.Height, index, hex.EncodeToString(payLoad),
 		1,
-		blockHeader.Timestamp.Unix(),
+		blockMeta.Time,
 	}
 
 	cmd, err := hcjson.NewCmd("omni_processtx", params...)

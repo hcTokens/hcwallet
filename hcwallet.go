@@ -8,17 +8,23 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"reflect"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/HcashOrg/hcd/chaincfg"
+	"github.com/HcashOrg/hcd/chaincfg/chainhash"
+
+	"github.com/HcashOrg/hcd/hcjson"
 	"github.com/HcashOrg/hcwallet/chain"
 	"github.com/HcashOrg/hcwallet/internal/prompt"
 	"github.com/HcashOrg/hcwallet/internal/zero"
@@ -155,8 +161,6 @@ func walletMain() error {
 			passphrase = []byte(cfg.Pass)
 		}
 
-		//passphrase := []byte("111111")
-
 		// Load the wallet database.  It must have been created already
 		// or this will return an appropriate error.
 		w, err := loader.OpenExistingWallet(walletPass, passphrase)
@@ -196,8 +200,18 @@ func walletMain() error {
 		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
 	}
 
-	if cfg.EnableOmini || cfg.TestNet{
+	if cfg.EnableOmini || cfg.TestNet {
 		omnilib.OmniCommunicate()
+	}
+
+	w, b := loader.LoadedWallet()
+	if b == false {
+		return fmt.Errorf("failed to load wallet")
+	}
+	err = recoverOmniData(w)
+	if err != nil {
+		log.Errorf("Failed to recoverOmniData: %v", err)
+		return err
 	}
 
 	// Add interrupt handlers to shutdown the various process components
@@ -416,4 +430,50 @@ func startChainRPC(certs []byte) (*chain.RPCClient, error) {
 	}
 	err = rpcc.Start()
 	return rpcc, err
+}
+
+func recoverOmniData(w *wallet.Wallet) error {
+	// 1 read hash
+	var cmd hcjson.OmniReadAllTxHashCmd
+
+	strResponse, err := legacyrpc.OmniReadAllTxHash(&cmd, w)
+	if err != nil {
+		return err
+	}
+
+	rv := reflect.ValueOf(strResponse)
+	if rv.IsNil() {
+		return fmt.Errorf("OmniData value error")
+	}
+	buf := rv.Bytes()
+	buf = buf[1 : len(buf)-1]
+	Hashs := strings.Split(string(buf), ":")
+
+	for _, txHash := range Hashs {
+		txSha, err := chainhash.NewHashFromStr(txHash)
+		if err != nil {
+			return err
+		}
+
+		//2 read tx
+		txd, err := wallet.UnstableAPI(w).TxDetails(txSha)
+		if err != nil {
+			return err
+		}
+		if txd == nil {
+			return legacyrpc.ErrNoTransactionInfo
+		}
+
+		// 3 process tx
+		var buf bytes.Buffer
+		buf.Grow(txd.MsgTx.SerializeSize())
+		err = txd.MsgTx.Serialize(&buf)
+		err = w.ProcessOminiTransaction(buf.Bytes(), &txd.Block)
+		if err != nil {
+			log.Error("recover omni data err:%s", err.Error())
+			return err
+		}
+	}
+
+	return nil
 }

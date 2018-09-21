@@ -308,6 +308,11 @@ func sendPairsWithPayLoad(w *wallet.Wallet, amounts map[string]hcutil.Amount, ac
 	return txSha.String(), err
 }
 
+func OmniReadAllTxHash(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	//var cmd hcjson.OmniReadAllTxHashCmd
+	return omni_cmdReq(icmd, w)
+}
+
 // code below was auto generated
 
 // OmniSend Create and broadcast a simple send transaction.
