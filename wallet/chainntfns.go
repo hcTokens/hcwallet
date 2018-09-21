@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"encoding/hex"
-	"encoding/json"
 
 	"github.com/HcashOrg/hcd/blockchain/stake"
 	"github.com/HcashOrg/hcd/chaincfg/chainhash"
@@ -26,6 +25,7 @@ import (
 	"github.com/HcashOrg/hcwallet/wallet/txrules"
 	"github.com/HcashOrg/hcwallet/wallet/udb"
 	"github.com/HcashOrg/hcwallet/walletdb"
+	"github.com/HcashOrg/hcd/hcjson"
 )
 
 func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
@@ -528,24 +528,29 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	}
 
 	bHash := blockHeader.BlockHash()
-	group := OmniParamCmd{
-		Method:       "ProcessTx",
-		Sender:       sendor,
-		Reference:    toAddress,
-		TxHash:       hex.EncodeToString(rec.Hash[:]),
-		BlockHash:    hex.EncodeToString(bHash[:]),
-		Block:        blockHeader.Height,
-		Idx:          index,
-		ScriptEncode: hex.EncodeToString(payLoad),
-		Fee:          1,
-		Time:         blockHeader.Timestamp.Unix(),
+	params := make([]interface{}, 0, 10)
+	params = append(params, sendor)
+	params = append(params, toAddress)
+	params = append(params, hex.EncodeToString(rec.Hash[:]))
+	params = append(params, hex.EncodeToString(bHash[:]))
+	params = append(params, blockHeader.Height)
+	params = append(params, index)
+	params = append(params, hex.EncodeToString(payLoad))
+	params = append(params, 1)
+	params = append(params, blockHeader.Timestamp.Unix())
+
+	cmd, err := hcjson.NewCmd("omni_processtx", params...)
+	if err != nil {
+		return err
 	}
-	b, err := json.Marshal(group)
-	if err == nil {
-		fmt.Println(b)
+	marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
+	if err != nil {
+		return err
 	}
+	fmt.Println(string(marshalledJSON))
+
 	//construct omni variables
-	omnilib.JsonCmdReqHcToOm(string(b))
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 	return nil
 }
 
