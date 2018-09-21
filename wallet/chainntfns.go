@@ -460,7 +460,8 @@ type OmniParamCmd struct {
 }
 
 func GetPayLoadData(PkScript []byte) (bool, []byte) {
-	if PkScript[0] == 106 &&
+	if len(PkScript) >6 &&
+		PkScript[0] == 106 &&
 		PkScript[2] == 111 &&
 		PkScript[3] == 109 &&
 		PkScript[4] == 110 &&
