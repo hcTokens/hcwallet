@@ -1,10 +1,12 @@
+
+// +build windows
+
 package omnilib
 
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include "./omniproxy.h"
 // #cgo CFLAGS: -I./
-///* #cgo LDFLAGS:  -L./libomni -lomni*/
 import "C"
 import (
 	//"unsafe"
