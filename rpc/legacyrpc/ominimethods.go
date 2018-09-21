@@ -9,6 +9,7 @@ package legacyrpc
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/HcashOrg/hcd/hcjson"
 	"github.com/HcashOrg/hcd/hcutil"
@@ -45,6 +46,7 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (json.RawMessage, error) {
 		return nil, err
 	}
 	strReq := string(byteCmd)
+	fmt.Printf(strReq)
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
 	var response hcjson.Response
@@ -139,11 +141,13 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	omniSendCmd := icmd.(*hcjson.OmniSendCmd)
 	ret, err := omni_cmdReq(icmd, w)
 	if err != nil {
-		return ret, err
+		return nil, err
 	}
 
 	payLoad, err := hex.DecodeString(string(ret))
-
+	if err != nil {
+		return nil, err
+	}
 	_, err = decodeAddress(omniSendCmd.Fromaddress, w.ChainParams())
 	if err != nil {
 		return nil, err
@@ -156,8 +160,8 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
 	cmd := &SendFromAddressToAddress{
 		FromAddress:   omniSendCmd.Fromaddress,
-		ToAddress:     omniSendCmd.Toaddress,
 		ChangeAddress: omniSendCmd.Fromaddress,
+		ToAddress:     omniSendCmd.Toaddress,
 		Amount:        1,
 	}
 	return omniSendToAddress(cmd, w, payLoad)

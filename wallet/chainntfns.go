@@ -460,7 +460,8 @@ type OmniParamCmd struct {
 }
 
 func GetPayLoadData(PkScript []byte) (bool, []byte) {
-	if PkScript[0] == 106 &&
+	if len(PkScript) > 6 &&
+		PkScript[0] == 106 &&
 		PkScript[2] == 111 &&
 		PkScript[3] == 109 &&
 		PkScript[4] == 110 &&
@@ -484,7 +485,7 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	if (sendIn.PreviousOutPoint.Hash == chainhash.Hash{}) {
 		return nil
 	}
-	
+
 	vout, err := w.chainClient.GetTxOut(&sendIn.PreviousOutPoint.Hash, sendIn.PreviousOutPoint.Index, true)
 	if err != nil {
 		fmt.Printf(err.Error())
@@ -492,68 +493,59 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	}
 	//_, pubkeyAddrs := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.ScriptPubKey.Hex, w.ChainParams())
 	sendor := vout.ScriptPubKey.Addresses[0]
+	var toAddress string
+	index := int(0)
+	isSetMultyNull := false
+	isSetToAddress := false
+	var payLoad []byte
+	var blockHeader wire.BlockHeader
+	err = blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
+	if err != nil {
+		return err
+	}
 
-	for _, tx := range rec.MsgTx.TxOut {
-		ok, payLoad := GetPayLoadData(tx.PkScript)
+	for i, tx := range rec.MsgTx.TxOut {
+		ok, payLoad2 := GetPayLoadData(tx.PkScript)
 		if ok {
-			var blockHeader wire.BlockHeader
-			err := blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
-			if err != nil {
-				return err
+			//nulldata
+			if !isSetMultyNull {
+				payLoad = payLoad2
+				index = i
+				isSetMultyNull = true
+			} else {
+				return errors.New("not allow more than one nulldata script in omini transaction")
 			}
-
-			var toAddress string
-			index := int(0)
-			i := int(0)
-			isSetMultyNull := false
-			isSetFromAddress := false
-			for _, tx := range rec.MsgTx.TxOut {
-				ok, _ = GetPayLoadData(tx.PkScript)
-				if ok {
-					//nulldata
-					if !isSetMultyNull {
-						index = i
-						isSetMultyNull = true
-					} else {
-						return errors.New("not allow more than one nulldata script in omini transaction")
-					}
-				} else {
-					if !isSetFromAddress {
-						_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, tx.PkScript, w.ChainParams())
-						if err != nil {
-							return err
-						}
-						toAddress = pubkeyAddrs[0].String()
-						isSetFromAddress = false
-					}
+		} else {
+			if !isSetToAddress {
+				_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, tx.PkScript, w.ChainParams())
+				if err != nil {
+					return err
 				}
-				i++
+				toAddress = pubkeyAddrs[0].String()
+				isSetToAddress = true
 			}
-
-			bHash := blockHeader.BlockHash()
-			group := OmniParamCmd{
-				Method:       "ProcessTx",
-				Sender:       sendor,
-				Reference:    toAddress,
-				TxHash:       hex.EncodeToString(rec.Hash[:]),
-				BlockHash:    hex.EncodeToString(bHash[:]),
-				Block:        blockHeader.Height,
-				Idx:          index,
-				ScriptEncode: hex.EncodeToString(payLoad),
-				Fee:          1,
-				Time:         blockHeader.Timestamp.Unix(),
-			}
-			b, err := json.Marshal(group)
-
-			if err == nil {
-				fmt.Println(b)
-			}
-			//construct omni variables
-			omnilib.JsonCmdReqHcToOm(string(b))
-
-			return nil
 		}
 	}
+
+	bHash := blockHeader.BlockHash()
+	group := OmniParamCmd{
+		Method:       "ProcessTx",
+		Sender:       sendor,
+		Reference:    toAddress,
+		TxHash:       hex.EncodeToString(rec.Hash[:]),
+		BlockHash:    hex.EncodeToString(bHash[:]),
+		Block:        blockHeader.Height,
+		Idx:          index,
+		ScriptEncode: hex.EncodeToString(payLoad),
+		Fee:          1,
+		Time:         blockHeader.Timestamp.Unix(),
+	}
+	b, err := json.Marshal(group)
+	if err == nil {
+		fmt.Println(b)
+	}
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(b))
 	return nil
 }
 
