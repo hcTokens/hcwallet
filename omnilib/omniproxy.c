@@ -1,8 +1,10 @@
 #include <stdio.h>
-#include <stdio.h>
-#include <windows.h>
+#include <stdlib.h>
 #include "omniproxy.h"
 
+#if defined(_WIN64)||defined(_WIN32)
+
+#include <windows.h>
 
 typedef const char* (WINAPI *FunJsonCmdReq)(char *);
 typedef int (WINAPI *FunOmniStart)(char *);
@@ -56,3 +58,24 @@ int CSetCallback(int iIndex,void* pCallback)
     return funSetCallback(iIndex,pCallback);
 };
 
+#else //for linux etc
+void CLoadLibAndInit()
+{
+    return;
+}
+int COmniStart(char *pcArgs)
+{
+    return OmniStart(pcArgs);
+}
+const char* CJsonCmdReq(char *pcReq)
+{
+    return JsonCmdReq(pcReq);
+};
+
+//maybe used in future
+int CSetCallback(int iIndex,void* pCallback)
+{
+    return 0;
+};
+
+#endif //end of defined(_WIN64)||defined(_WIN32)
