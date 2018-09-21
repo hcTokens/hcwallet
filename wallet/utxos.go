@@ -161,3 +161,23 @@ func (w *Wallet) OutputInfo(op *wire.OutPoint) (OutputInfo, error) {
 	})
 	return info, err
 }
+
+// OutputInfo queries the wallet for additional transaction output info
+// regarding an outpoint.
+func (w *Wallet) GetTxDetails(op *wire.OutPoint) (*udb.TxDetails, error) {
+	var txDetails2 *udb.TxDetails
+	err := walletdb.View(w.db, func(dbtx walletdb.ReadTx) error {
+		txmgrNs := dbtx.ReadBucket(wtxmgrNamespaceKey)
+
+		txDetails, err := w.TxStore.TxDetails(txmgrNs, &op.Hash)
+		if err != nil {
+			return err
+		}
+		txDetails2 = txDetails
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return txDetails2, nil
+}

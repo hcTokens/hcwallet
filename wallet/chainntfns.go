@@ -16,6 +16,7 @@ import (
 
 	"github.com/HcashOrg/hcd/blockchain/stake"
 	"github.com/HcashOrg/hcd/chaincfg/chainhash"
+	"github.com/HcashOrg/hcd/hcjson"
 	"github.com/HcashOrg/hcd/hcutil"
 	"github.com/HcashOrg/hcd/txscript"
 	"github.com/HcashOrg/hcd/wire"
@@ -25,7 +26,6 @@ import (
 	"github.com/HcashOrg/hcwallet/wallet/txrules"
 	"github.com/HcashOrg/hcwallet/wallet/udb"
 	"github.com/HcashOrg/hcwallet/walletdb"
-	"github.com/HcashOrg/hcd/hcjson"
 )
 
 func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
@@ -40,9 +40,6 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 			notificationName = "blockconnected"
 			err = w.onBlockConnected(n.BlockHeader, n.Transactions)
 			if err == nil {
-				for _, serializedTx := range n.Transactions {
-					w.ProcessPayLoadTransaction(serializedTx, n.BlockHeader)
-				}
 				err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
 					return w.watchFutureAddresses(tx)
 				})
@@ -122,8 +119,7 @@ func (w *Wallet) handleChainNotifications(chainClient *chain.RPCClient) {
 func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHeaderData, transactions [][]byte) error {
 	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
 
-	log.Infof("Connecting block %v, height %v", block.BlockHash,
-		block.SerializedHeader.Height())
+	log.Infof("Connecting block %v, height %v", block.BlockHash, block.SerializedHeader.Height())
 
 	err := w.TxStore.ExtendMainChain(txmgrNs, block)
 	if err != nil {
@@ -148,11 +144,11 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 	}
 
 	for _, serializedTx := range transactions {
-		err = w.processSerializedTransaction(dbtx, serializedTx,
-			&block.SerializedHeader, &blockMeta)
+		err = w.processSerializedTransaction(dbtx, serializedTx, &block.SerializedHeader, &blockMeta)
 		if err != nil {
 			return err
 		}
+		w.processOminiTransaction(serializedTx, header)
 	}
 
 	return nil
@@ -470,7 +466,8 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	}
 	return false, nil
 }
-func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockHeader []byte) error {
+
+func (w *Wallet) processOminiTransaction(serializedTx []byte, blockHeader wire.BlockHeader) error {
 	rec, err := udb.NewTxRecord(serializedTx, time.Now())
 	if err != nil {
 		return err
@@ -485,27 +482,28 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	if (sendIn.PreviousOutPoint.Hash == chainhash.Hash{}) {
 		return nil
 	}
-
-	vout, err := w.chainClient.GetTxOut(&sendIn.PreviousOutPoint.Hash, sendIn.PreviousOutPoint.Index, true)
+	txDetail, err := w.GetTxDetails(&sendIn.PreviousOutPoint)
 	if err != nil {
 		fmt.Printf(err.Error())
 		return err
 	}
-	//_, pubkeyAddrs := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.ScriptPubKey.Hex, w.ChainParams())
-	if len(vout.ScriptPubKey.Addresses) == 0 {
+	vout := txDetail.TxRecord.MsgTx.TxOut[sendIn.PreviousOutPoint.Index]
+	_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.PkScript, w.ChainParams())
+	if err != nil {
+		fmt.Printf(err.Error())
+		return err
+	}
+
+	if len(pubkeyAddrs) == 0 {
 		return errors.New("must assign addresss as sendfrom ")
 	}
-	sendor := vout.ScriptPubKey.Addresses[0]
+
+	sendor := pubkeyAddrs[0].String() //多签未考虑
 	var toAddress string
 	index := int(0)
 	isSetMultyNull := false
 	isSetToAddress := false
 	var payLoad []byte
-	var blockHeader wire.BlockHeader
-	err = blockHeader.Deserialize(bytes.NewReader(serializedBlockHeader))
-	if err != nil {
-		return err
-	}
 
 	for i, tx := range rec.MsgTx.TxOut {
 		ok, payLoad2 := GetPayLoadData(tx.PkScript)
@@ -524,23 +522,22 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 				if err != nil {
 					return err
 				}
-				toAddress = pubkeyAddrs[0].String()
+				toAddress = pubkeyAddrs[0].String() //多签未考虑
 				isSetToAddress = true
 			}
 		}
 	}
 
 	bHash := blockHeader.BlockHash()
-	params := make([]interface{}, 0, 10)
-	params = append(params, sendor)
-	params = append(params, toAddress)
-	params = append(params, hex.EncodeToString(rec.Hash[:]))
-	params = append(params, hex.EncodeToString(bHash[:]))
-	params = append(params, blockHeader.Height)
-	params = append(params, index)
-	params = append(params, hex.EncodeToString(payLoad))
-	params = append(params, 1)
-	params = append(params, blockHeader.Timestamp.Unix())
+	params := []interface{}{
+		sendor,
+		toAddress,
+		hex.EncodeToString(rec.Hash[:]),
+		hex.EncodeToString(bHash[:]),
+		blockHeader.Height, index, hex.EncodeToString(payLoad),
+		1,
+		blockHeader.Timestamp.Unix(),
+	}
 
 	cmd, err := hcjson.NewCmd("omni_processtx", params...)
 	if err != nil {
@@ -550,7 +547,6 @@ func (w *Wallet) ProcessPayLoadTransaction(serializedTx []byte, serializedBlockH
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(marshalledJSON))
 
 	//construct omni variables
 	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
