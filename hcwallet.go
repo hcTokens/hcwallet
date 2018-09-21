@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,8 +18,13 @@ import (
 	"runtime/pprof"
 	"sync"
 	"time"
+	"reflect"
+	"strings"
 
 	"github.com/HcashOrg/hcd/chaincfg"
+	"github.com/HcashOrg/hcd/chaincfg/chainhash"
+
+	"github.com/HcashOrg/hcd/hcjson"
 	"github.com/HcashOrg/hcwallet/chain"
 	"github.com/HcashOrg/hcwallet/internal/prompt"
 	"github.com/HcashOrg/hcwallet/internal/zero"
