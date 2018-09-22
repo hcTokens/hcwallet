@@ -550,9 +550,11 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 		toAddress,
 		hex.EncodeToString(rec.Hash[:]),
 		hex.EncodeToString(blockMeta.Hash[:]),
-		blockMeta.Height, index, hex.EncodeToString(payLoad),
-		1,
-		blockMeta.Time,
+		int64(blockMeta.Height),
+		int64(index),
+		hex.EncodeToString(payLoad),
+		int64(1),
+		blockMeta.Time.Unix(),
 	}
 
 	cmd, err := hcjson.NewCmd("omni_processtx", params...)
@@ -563,7 +565,7 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 	if err != nil {
 		return err
 	}
-
+	fmt.Println(string(marshalledJSON))
 	//construct omni variables
 	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 	return nil
