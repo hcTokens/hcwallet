@@ -200,7 +200,7 @@ func walletMain() error {
 		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
 	}
 
-	_, b := loader.LoadedWallet()
+	w, b := loader.LoadedWallet()
 	if b == false {
 		return fmt.Errorf("failed to load wallet")
 	}
