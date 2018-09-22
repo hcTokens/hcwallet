@@ -167,7 +167,6 @@ type sideChainBlock struct {
 // switchToSideChain performs a chain switch, switching the main chain to the
 // in-memory side chain.  The old side chain becomes the new main chain.
 func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNotification, error) {
-	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
 
 	sideChain := w.sideChain
@@ -477,7 +476,7 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 
 func (w *Wallet) rollBackOminiTransaction(height int32) error {
 	//todo
-	cmd, err := hcjson.NewCmd("omni_rollback", []interface{}{height})
+	_, err := hcjson.NewCmd("omni_rollback", []interface{}{height})
 	if err != nil {
 		return err
 	}

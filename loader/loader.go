@@ -170,7 +170,7 @@ func (l *Loader) CreateNewWallet(pubPassphrase, privPassphrase, seed []byte) (w 
 	w, err = wallet.Open(db, pubPassphrase, privPassphrase, so.VotingEnabled, so.AddressReuse,
 		so.TicketAddress, so.PoolAddress, so.PoolFees, so.TicketFee,
 		l.addrIdxScanLen, so.StakePoolColdExtKey, l.allowHighFees,
-		l.relayFee, l.chainParams)
+		l.relayFee, l.enableOmini, l.chainParams)
 	if err != nil {
 		return nil, err
 	}
