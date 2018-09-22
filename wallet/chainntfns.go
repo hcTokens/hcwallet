@@ -148,7 +148,7 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 		if err != nil {
 			return err
 		}
-		if w.EnabaleOmini() {
+		if w.EnableOmini() {
 			err = w.ProcessOminiTransaction(serializedTx, &blockMeta)
 			if err != nil {
 				return err
@@ -232,7 +232,7 @@ func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32) 
 	if err != nil {
 		return err
 	}
-	if w.EnabaleOmini() {
+	if w.EnableOmini() {
 		err = w.rollBackOminiTransaction(sideChainForkHeight)
 		if err != nil {
 			return err

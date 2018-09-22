@@ -199,7 +199,7 @@ func newWallet(votingEnabled bool, addressReuse bool, ticketAddress hcutil.Addre
 		lockState:                make(chan bool),
 		changePassphrase:         make(chan changePassphraseRequest),
 		chainParams:              params,
-		enabaleOmini			  enableOmini,
+		enabaleOmini:             enableOmini,
 		quit:                     make(chan struct{}),
 	}
 
@@ -546,8 +546,7 @@ func (w *Wallet) SetInitiallyUnlocked(set bool) {
 	w.initiallyUnlocked = set
 }
 
-// TicketAddress gets the ticket address for the wallet to give the ticket
-// voting rights to.
+// EnableOmini
 func (w *Wallet) EnableOmini() bool {
 	return w.enabaleOmini
 }
