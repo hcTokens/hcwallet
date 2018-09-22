@@ -153,6 +153,9 @@ type Wallet struct {
 
 	//Dll
 	MsgReceiver chan string
+
+	//Omini  enable omini function
+	enabaleOmini bool
 }
 
 // newWallet creates a new Wallet structure with the provided address manager
@@ -161,7 +164,7 @@ func newWallet(votingEnabled bool, addressReuse bool, ticketAddress hcutil.Addre
 	poolAddress hcutil.Address, pf float64, relayFee, ticketFee hcutil.Amount,
 	gapLimit int, stakePoolColdAddrs map[string]struct{}, AllowHighFees bool,
 	mgr *udb.Manager, txs *udb.Store, smgr *udb.StakeStore, db *walletdb.DB,
-	params *chaincfg.Params, privpass []byte) (*Wallet, error) {
+	params *chaincfg.Params, privpass []byte, enableOmini bool) (*Wallet, error) {
 
 	w := &Wallet{
 		db:                       *db,
@@ -196,6 +199,7 @@ func newWallet(votingEnabled bool, addressReuse bool, ticketAddress hcutil.Addre
 		lockState:                make(chan bool),
 		changePassphrase:         make(chan changePassphraseRequest),
 		chainParams:              params,
+		enabaleOmini			  enableOmini,
 		quit:                     make(chan struct{}),
 	}
 
@@ -540,6 +544,12 @@ func (w *Wallet) PoolFees() float64 {
 // are accessible. It is not safe for concurrent access.
 func (w *Wallet) SetInitiallyUnlocked(set bool) {
 	w.initiallyUnlocked = set
+}
+
+// TicketAddress gets the ticket address for the wallet to give the ticket
+// voting rights to.
+func (w *Wallet) EnableOmini() bool {
+	return w.enabaleOmini
 }
 
 // Start starts the goroutines necessary to manage a wallet.
@@ -4249,7 +4259,7 @@ func decodeStakePoolColdExtKey(encStr string, params *chaincfg.Params) (map[stri
 func Open(db walletdb.DB, pubPass []byte, privPass []byte, votingEnabled bool, addressReuse bool,
 	ticketAddress hcutil.Address, poolAddress hcutil.Address, poolFees float64, ticketFee float64,
 	gapLimit int, stakePoolColdExtKey string, allowHighFees bool,
-	relayFee float64, params *chaincfg.Params) (*Wallet, error) {
+	relayFee float64, enableOmini bool, params *chaincfg.Params) (*Wallet, error) {
 
 	// Migrate to the unified DB if necessary.
 	needsMigration, err := udb.NeedsMigration(db)
@@ -4309,6 +4319,7 @@ func Open(db walletdb.DB, pubPass []byte, privPass []byte, votingEnabled bool, a
 		&db,
 		params,
 		privPass,
+		enableOmini,
 	)
 	if err != nil {
 		return nil, err

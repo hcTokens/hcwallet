@@ -126,7 +126,7 @@ func walletMain() error {
 	}
 
 	loader := ldr.NewLoader(activeNet.Params, dbDir, stakeOptions,
-		cfg.AddrIdxScanLen, cfg.AllowHighFees, cfg.RelayFee.ToCoin())
+		cfg.AddrIdxScanLen, cfg.AllowHighFees, cfg.RelayFee.ToCoin(), cfg.EnableOmini)
 
 	passphrase := []byte{}
 	if !cfg.NoInitialLoad {
@@ -200,20 +200,19 @@ func walletMain() error {
 		go serviceControlPipeRx(uintptr(*cfg.PipeRx))
 	}
 
-	if cfg.EnableOmini || cfg.TestNet {
-		omnilib.OmniCommunicate()
-	}
-
-	w, b := loader.LoadedWallet()
+	_, b := loader.LoadedWallet()
 	if b == false {
 		return fmt.Errorf("failed to load wallet")
 	}
-	err = recoverOmniData(w)
-	if err != nil {
-		log.Errorf("Failed to recoverOmniData: %v", err)
-		return err
-	}
 
+	if cfg.EnableOmini || cfg.TestNet {
+		omnilib.OmniCommunicate()
+		err = recoverOmniData(w)
+		if err != nil {
+			log.Errorf("Failed to recoverOmniData: %v", err)
+			return err
+		}
+	}
 	// Add interrupt handlers to shutdown the various process components
 	// before exiting.  Interrupt handlers run in LIFO order, so the wallet
 	// (which should be closed last) is added first.

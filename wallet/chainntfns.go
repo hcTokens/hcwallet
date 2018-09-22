@@ -148,7 +148,12 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 		if err != nil {
 			return err
 		}
-		w.ProcessOminiTransaction(serializedTx, &blockMeta)
+		if w.EnabaleOmini() {
+			err = w.ProcessOminiTransaction(serializedTx, &blockMeta)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -199,7 +204,7 @@ func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNo
 
 	// Remove blocks on the current main chain that are at or above the
 	// height of the block that begins the side chain.
-	err := w.TxStore.Rollback(txmgrNs, addrmgrNs, sideChainForkHeight)
+	err := w.RollBack(dbtx, sideChainForkHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -219,6 +224,22 @@ func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNo
 	return chainTipChanges, nil
 }
 
+func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32) error {
+	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
+	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
+
+	err := w.TxStore.Rollback(txmgrNs, addrmgrNs, sideChainForkHeight)
+	if err != nil {
+		return err
+	}
+	if w.EnabaleOmini() {
+		err = w.rollBackOminiTransaction(sideChainForkHeight)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func copyHeaderSliceToArray(array *udb.RawBlockHeader, slice []byte) error {
 	if len(array) != len(udb.RawBlockHeader{}) {
 		return errors.New("block header has unexpected size")
@@ -442,19 +463,6 @@ func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, seriali
 	return w.processTransactionRecord(dbtx, rec, serializedHeader, blockMeta)
 }
 
-type OmniParamCmd struct {
-	Method       string `json:"method"`
-	Sender       string
-	Reference    string
-	TxHash       string
-	BlockHash    string
-	Block        uint32
-	Idx          int
-	ScriptEncode string
-	Fee          int64
-	Time         int64
-}
-
 func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	if len(PkScript) > 6 &&
 		PkScript[0] == 106 &&
@@ -465,6 +473,15 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 		return true, PkScript[6:]
 	}
 	return false, nil
+}
+
+func (w *Wallet) rollBackOminiTransaction(height int32) error {
+	//todo
+	cmd, err := hcjson.NewCmd("omni_rollback", []interface{}{height})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.BlockMeta) error {
