@@ -12,14 +12,19 @@ import (
 	//"unsafe"
 	//"time"
 	"time"
+	"sync"
 )
 
-
+var mutexOmni sync.Mutex
 
 func JsonCmdReqHcToOm(strReq string) string{
+	mutexOmni.Lock()
+	defer mutexOmni.Unlock()
 	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
-	return strRsp;
+	return strRsp
 }
+
+
 func LoadLibAndInit() {
 	C.CLoadLibAndInit()
 }
