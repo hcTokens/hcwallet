@@ -205,8 +205,15 @@ func walletMain() error {
 		return fmt.Errorf("failed to load wallet")
 	}
 
+	netName :="main"
+	if cfg.TestNet{
+		netName = "test"
+	} else if cfg.SimNet{
+		netName = "regtest"
+	}
+
 	if cfg.EnableOmini || cfg.TestNet {
-		omnilib.OmniCommunicate()
+		omnilib.OmniCommunicate(netName)
 		err = recoverOmniData(w)
 		if err != nil {
 			log.Errorf("Failed to recoverOmniData: %v", err)
@@ -446,6 +453,9 @@ func recoverOmniData(w *wallet.Wallet) error {
 	}
 	buf := rv.Bytes()
 	buf = buf[1 : len(buf)-1]
+	if len(buf) == 0{
+		return nil
+	}
 	Hashs := strings.Split(string(buf), ":")
 
 	for _, txHash := range Hashs {

@@ -28,10 +28,10 @@ func OmniStart(strArgs string) {
 	C.COmniStart(C.CString(strArgs))
 }
 
-func OmniCommunicate() {
+func OmniCommunicate(netName string) {
 //add by ycj 20180915
 	LoadLibAndInit()
-	go OmniStart("exeName -regtest -txindex")
+	OmniStart(netName)
 
 	time.Sleep(time.Second*2)
 	/*
