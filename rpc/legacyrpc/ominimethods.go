@@ -239,7 +239,29 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		ToAddress:     omniSendCmd.Toaddress,
 		Amount:        1,
 	}
-	return omniSendToAddress(cmd, w, payLoad)
+	final, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+	//
+	params := make([]interface{}, 0, 10)
+	params = append(params, omniSendCmd.Fromaddress)
+	params = append(params, omniSendCmd.Propertyid)
+	params = append(params, omniSendCmd.Amount)
+	params = append(params, final)
+
+	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return final, err
 }
 
 type SendFromAddressToAddress struct {

@@ -548,8 +548,8 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 	params := []interface{}{
 		sendor,
 		toAddress,
-		hex.EncodeToString(rec.Hash[:]),
-		hex.EncodeToString(blockMeta.Hash[:]),
+		rec.Hash.String(),
+		blockMeta.Hash.String(),
 		int64(blockMeta.Height),
 		int64(index),
 		hex.EncodeToString(payLoad),
