@@ -185,6 +185,7 @@ func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 		FromAddress:   sendIssueCmd.Fromaddress,
 		ToAddress:     sendIssueCmd.Fromaddress,
 		ChangeAddress: sendIssueCmd.Fromaddress,
+		Amount:1,
 	}
 	return omniSendToAddress(sendParams, w, payLoad)
 }
