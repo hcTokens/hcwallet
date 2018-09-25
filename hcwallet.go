@@ -454,6 +454,7 @@ func recoverOmniData(w *wallet.Wallet) error {
 	buf := rv.Bytes()
 	buf = buf[1 : len(buf)-1]
 	if len(buf) == 0{
+		log.Infof("recoverOmniData omni no data")
 		return nil
 	}
 	Hashs := strings.Split(string(buf), ":")

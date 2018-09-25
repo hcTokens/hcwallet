@@ -110,7 +110,15 @@ func getOminiMethod() map[string]LegacyRpcHandler {
 		"omni_getfeedistribution":                {handler: OmniGetfeedistribution},
 		"omni_getfeedistributions":               {handler: OmniGetfeedistributions},
 		"omni_setautocommit":                     {handler: OmniSetautocommit},
+		"omni_rollback":                           {handler:OmniRollBack},
 	}
+}
+
+func OmniRollBack(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	cmd := icmd.(*hcjson.OmniRollBackCmd)
+	err := w.RollBackOminiTransaction(cmd.Height)
+
+	return "", err
 }
 
 //add by ycj 20180915
@@ -120,9 +128,8 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	strReq := string(byteCmd)
-	fmt.Printf(strReq)
-	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
+
+	strRsp := omnilib.JsonCmdReqHcToOm(string(byteCmd))
 
 	var response hcjson.Response
 	_ = json.Unmarshal([]byte(strRsp), &response)

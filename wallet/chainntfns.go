@@ -8,6 +8,7 @@ package wallet
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -232,7 +233,7 @@ func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32) 
 		return err
 	}
 	if w.EnableOmini() {
-		err = w.rollBackOminiTransaction(sideChainForkHeight)
+		err = w.RollBackOminiTransaction(uint32(sideChainForkHeight))
 		if err != nil {
 			return err
 		}
@@ -474,12 +475,27 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	return false, nil
 }
 
-func (w *Wallet) rollBackOminiTransaction(height int32) error {
-	//todo
-	_, err := hcjson.NewCmd("omni_rollback", []interface{}{height})
+func (w *Wallet) RollBackOminiTransaction(height uint32) error {
+	heights := height
+	cmd := hcjson.OmniRollBackCmd{
+		Height: heights,
+	}
+
+	byteCmd, err := hcjson.MarshalCmd(1, &cmd)
 	if err != nil {
 		return err
 	}
+
+	strRsp := omnilib.JsonCmdReqHcToOm(string(byteCmd))
+
+	var response hcjson.Response
+	_ = json.Unmarshal([]byte(strRsp), &response)
+
+	ret, err := response.Result.MarshalJSON()
+	if len(ret) != 0 {
+		return fmt.Errorf("RollBackOminiTransaction error,height:%d", height)
+	}
+
 	return nil
 }
 
@@ -544,7 +560,7 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 			}
 		}
 	}
-	if len(payLoad) ==0{
+	if len(payLoad) == 0{
 		return nil
 	}
 
