@@ -126,7 +126,11 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (json.RawMessage, error) {
 
 	var response hcjson.Response
 	_ = json.Unmarshal([]byte(strRsp), &response)
-	return response.Result, nil
+	if response.Error != nil{
+		return nil, fmt.Errorf(response.Error.Message)
+	}else{
+		return response.Result, nil
+	}
 }
 
 //
@@ -446,8 +450,60 @@ func OmniSendchangeissuer(icmd interface{}, w *wallet.Wallet) (interface{}, erro
 // OmniSendall Transfers all available tokens in the given ecosystem to the recipient.
 // $ omnicore-cli "omni_sendall" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 2
 func OmniSendall(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendallCmd)
-	return omni_cmdReq(icmd, w)
+	omniSendallCmd := icmd.(*hcjson.OmniSendallCmd)
+	ret, err := omni_cmdReq(icmd, w)
+
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSendallCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = decodeAddress(omniSendallCmd.Toaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendallCmd.Fromaddress,
+		ChangeAddress: omniSendallCmd.Fromaddress,
+		ToAddress:     omniSendallCmd.Toaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(cmd, w, payLoad)
+/*
+	final, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+	//
+	params := make([]interface{}, 0, 10)
+	params = append(params, omniSendallCmd.Fromaddress)
+	params = append(params, omniSendallCmd.Toaddress)
+	params = append(params, omniSendallCmd.Ecosystem)
+	params = append(params, omniSendallCmd.Redeemaddress)
+	params = append(params, omniSendallCmd.Referenceamount)
+
+	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return final, err
+*/
 }
 
 // OmniSendenablefreezing Enables address freezing for a centrally managed property.
