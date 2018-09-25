@@ -12,13 +12,16 @@ import (
 	//"unsafe"
 	//"time"
 	"time"
+	"sync"
 )
 
-//var PtrLegacyRPCServer *Server=nil
+var mutexOmni sync.Mutex
 
 func JsonCmdReqHcToOm(strReq string) string{
+	mutexOmni.Lock()
+	defer mutexOmni.Unlock()
 	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
-	return strRsp;
+	return strRsp
 }
 func LoadLibAndInit() {
 	C.CLoadLibAndInit()
@@ -43,6 +46,7 @@ func OmniCommunicate(netName string) {
 }
 
 /* abolish callback to LegacyRPCServer
+//var PtrLegacyRPCServer *Server=nil
 //export JsonCmdReqOmToHc
 func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 
