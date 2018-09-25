@@ -205,10 +205,10 @@ func walletMain() error {
 		return fmt.Errorf("failed to load wallet")
 	}
 
-	netName :="main"
-	if cfg.TestNet{
+	netName := "main"
+	if cfg.TestNet {
 		netName = "test"
-	} else if cfg.SimNet{
+	} else if cfg.SimNet {
 		netName = "regtest"
 	}
 
@@ -439,6 +439,7 @@ func startChainRPC(certs []byte) (*chain.RPCClient, error) {
 }
 
 func recoverOmniData(w *wallet.Wallet) error {
+	return nil
 	// 1 read hash
 	var cmd hcjson.OmniReadAllTxHashCmd
 
@@ -453,7 +454,7 @@ func recoverOmniData(w *wallet.Wallet) error {
 	}
 	buf := rv.Bytes()
 	buf = buf[1 : len(buf)-1]
-	if len(buf) == 0{
+	if len(buf) == 0 {
 		return nil
 	}
 	Hashs := strings.Split(string(buf), ":")

@@ -125,7 +125,13 @@ func omni_cmdReq(icmd interface{}, w *wallet.Wallet) (json.RawMessage, error) {
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
 
 	var response hcjson.Response
-	_ = json.Unmarshal([]byte(strRsp), &response)
+	err = json.Unmarshal([]byte(strRsp), &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != nil {
+		return nil, response.Error
+	}
 	return response.Result, nil
 }
 
@@ -208,6 +214,24 @@ func sendIssuanceFixed(w *wallet.Wallet, payLoad []byte) (string, error) {
 	return sendPairsWithPayLoad(w, pairs, account, 1, changeAddr, payLoad, "")
 }
 
+// OmniSendchangeissuer Change the issuer on record of the given tokens.
+// $ omnicore-cli "omni_sendchangeissuer" \     "1ARjWDkZ7kT9fwjPrjcQyvbXDkEySzKHwu" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 3
+func OmniSendchangeissuer(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniSendchangeissuerCmd := icmd.(*hcjson.OmniSendchangeissuerCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+
+	pairs := map[string]hcutil.Amount{
+		omniSendchangeissuerCmd.Fromaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniSendchangeissuerCmd.Fromaddress, payLoad, "")
+}
+
 func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return omni_cmdReq(icmd, w)
 }
@@ -240,7 +264,7 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		Amount:        1,
 	}
 	final, err := omniSendToAddress(cmd, w, payLoad)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	//
@@ -432,13 +456,6 @@ func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}
 // $ omnicore-cli "omni_sendcancelalltrades" "3BydPiSLPP3DR5cf726hDQ89fpqWLxPKLR" 1
 func OmniSendcancelalltrades(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	_ = icmd.(*hcjson.OmniSendcancelalltradesCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniSendchangeissuer Change the issuer on record of the given tokens.
-// $ omnicore-cli "omni_sendchangeissuer" \     "1ARjWDkZ7kT9fwjPrjcQyvbXDkEySzKHwu" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 3
-func OmniSendchangeissuer(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendchangeissuerCmd)
 	return omni_cmdReq(icmd, w)
 }
 
