@@ -185,7 +185,7 @@ func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 		FromAddress:   sendIssueCmd.Fromaddress,
 		ToAddress:     sendIssueCmd.Fromaddress,
 		ChangeAddress: sendIssueCmd.Fromaddress,
-		Amount:1,
+		Amount:        1,
 	}
 	return omniSendToAddress(sendParams, w, payLoad)
 }
@@ -228,9 +228,77 @@ func OmniSendchangeissuer(icmd interface{}, w *wallet.Wallet) (interface{}, erro
 	payLoad, err := hex.DecodeString(hexStr)
 
 	pairs := map[string]hcutil.Amount{
-		omniSendchangeissuerCmd.Fromaddress: MininumAmount,
+		omniSendchangeissuerCmd.Toaddress: MininumAmount,
 	}
-	return sendPairsWithPayLoad(w, pairs, account, 1, omniSendchangeissuerCmd.Fromaddress, payLoad, "")
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniSendchangeissuerCmd.Fromaddress, payLoad, omniSendchangeissuerCmd.Fromaddress)
+}
+
+// OmniSendenablefreezing Enables address freezing for a centrally managed property.
+// $ omnicore-cli "omni_sendenablefreezing" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" 2
+func OmniSendenablefreezing(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniSendenablefreezingCmd := icmd.(*hcjson.OmniSendenablefreezingCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniSendenablefreezingCmd.Fromaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniSendenablefreezingCmd.Fromaddress, payLoad, omniSendenablefreezingCmd.Fromaddress)
+}
+
+// OmniSenddisablefreezing Disables address freezing for a centrally managed property.,IMPORTANT NOTE:  Disabling freezing for a property will UNFREEZE all frozen addresses for that property!
+// $ omnicore-cli "omni_senddisablefreezing" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" 2
+func OmniSenddisablefreezing(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniSenddisablefreezingCmd := icmd.(*hcjson.OmniSenddisablefreezingCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniSenddisablefreezingCmd.Fromaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniSenddisablefreezingCmd.Fromaddress, payLoad, omniSenddisablefreezingCmd.Fromaddress)
+}
+
+// OmniSendfreeze Freeze an address for a centrally managed token.,Note: Only the issuer may freeze tokens, and only if the token is of the managed type with the freezing option enabled.
+// $ omnicore-cli "omni_sendfreeze" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 2 1000
+func OmniSendfreeze(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniSendfreezeCmd := icmd.(*hcjson.OmniSendfreezeCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniSendfreezeCmd.Toaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, "", payLoad, omniSendfreezeCmd.Fromaddress)
+}
+
+// OmniSendunfreeze Unfreeze an address for a centrally managed token.,Note: Only the issuer may unfreeze tokens
+// $ omnicore-cli "omni_sendunfreeze" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 2 1000
+func OmniSendunfreeze(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniSendunfreezeCmd := icmd.(*hcjson.OmniSendunfreezeCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniSendunfreezeCmd.Toaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, "", payLoad, omniSendunfreezeCmd.Fromaddress)
 }
 
 func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
@@ -464,34 +532,6 @@ func OmniSendcancelalltrades(icmd interface{}, w *wallet.Wallet) (interface{}, e
 // $ omnicore-cli "omni_sendall" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 2
 func OmniSendall(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	_ = icmd.(*hcjson.OmniSendallCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniSendenablefreezing Enables address freezing for a centrally managed property.
-// $ omnicore-cli "omni_sendenablefreezing" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" 2
-func OmniSendenablefreezing(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendenablefreezingCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniSenddisablefreezing Disables address freezing for a centrally managed property.,IMPORTANT NOTE:  Disabling freezing for a property will UNFREEZE all frozen addresses for that property!
-// $ omnicore-cli "omni_senddisablefreezing" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" 2
-func OmniSenddisablefreezing(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSenddisablefreezingCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniSendfreeze Freeze an address for a centrally managed token.,Note: Only the issuer may freeze tokens, and only if the token is of the managed type with the freezing option enabled.
-// $ omnicore-cli "omni_sendfreeze" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 2 1000
-func OmniSendfreeze(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendfreezeCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniSendunfreeze Unfreeze an address for a centrally managed token.,Note: Only the issuer may unfreeze tokens
-// $ omnicore-cli "omni_sendunfreeze" "3M9qvHKtgARhqcMtM5cRT9VaiDJ5PSfQGY" "3HTHRxu3aSDV4deakjC7VmsiUp7c6dfbvs" 2 1000
-func OmniSendunfreeze(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendunfreezeCmd)
 	return omni_cmdReq(icmd, w)
 }
 
@@ -765,13 +805,6 @@ func OmniCreatepayloadDexaccept(icmd interface{}, w *wallet.Wallet) (interface{}
 // $ omnicore-cli "omni_createpayload_sto" 3 "5000"
 func OmniCreatepayloadSto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	_ = icmd.(*hcjson.OmniCreatepayloadStoCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniCreatepayloadIssuancefixed Creates the payload for a new tokens issuance with fixed supply.
-// $ omnicore-cli "omni_createpayload_issuancefixed" 2 1 0 "Companies" "Bitcoin Mining" "Quantum Miner" "" "" "1000000"
-func OmniCreatepayloadIssuancefixed(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniCreatepayloadIssuancefixedCmd)
 	return omni_cmdReq(icmd, w)
 }
 
