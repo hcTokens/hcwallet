@@ -544,6 +544,9 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 			}
 		}
 	}
+	if len(payLoad) ==0{
+		return nil
+	}
 
 	params := []interface{}{
 		sendor,
