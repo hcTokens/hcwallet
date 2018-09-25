@@ -254,7 +254,7 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	params = append(params, omniSendCmd.Propertyid)
 	params = append(params, omniSendCmd.Amount)
 	params = append(params, final)
-
+	params = append(params, 0)
 	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
 	if err != nil {
 		return nil, err
@@ -387,8 +387,56 @@ func OmniSendissuancemanaged(icmd interface{}, w *wallet.Wallet) (interface{}, e
 // OmniSendsto Create and broadcast a send-to-owners transaction.
 // $ omnicore-cli "omni_sendsto" \     "32Z3tJccZuqQZ4PhJR2hxHC3tjgjA8cbqz" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 3 "5000"
 func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendstoCmd)
-	return omni_cmdReq(icmd, w)
+	omniSendCmd := icmd.(*hcjson.OmniSendstoCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSendCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+//	_, err = decodeAddress(omniSendCmd.Toaddress, w.ChainParams())
+//	if err != nil {
+//		return nil, err
+//	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendCmd.Fromaddress,
+		ChangeAddress: omniSendCmd.Fromaddress,
+		ToAddress:     omniSendCmd.Fromaddress,
+		Amount:        1,
+	}
+	final, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+	//
+	params := make([]interface{}, 0, 10)
+	params = append(params, omniSendCmd.Fromaddress)
+	params = append(params, omniSendCmd.Propertyid)
+	params = append(params, omniSendCmd.Amount)
+	params = append(params, final)
+	params = append(params, 3)
+
+	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return final, err
 }
 
 // OmniSendgrant Issue or grant new units of managed tokens.
