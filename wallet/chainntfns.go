@@ -187,6 +187,7 @@ func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNo
 		NewHeight:      0, // Must be set by caller before sending
 	}
 
+	hashs := make([]chainhash.Hash,0)
 	// Find hashes of removed blocks for notifications.
 	for i := tipHeight; i >= sideChainForkHeight; i-- {
 		hash, err := w.TxStore.GetMainChainBlockHashForHeight(txmgrNs, i)
@@ -200,11 +201,12 @@ func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNo
 		// For transaction notifications, the blocks are notified in reverse
 		// height order.
 		w.NtfnServer.notifyDetachedBlock(&hash)
+		hashs = append(hashs, hash)
 	}
 
 	// Remove blocks on the current main chain that are at or above the
 	// height of the block that begins the side chain.
-	err := w.RollBack(dbtx, sideChainForkHeight)
+	err := w.RollBack(dbtx, sideChainForkHeight, hashs)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +226,7 @@ func (w *Wallet) switchToSideChain(dbtx walletdb.ReadWriteTx) (*MainTipChangedNo
 	return chainTipChanges, nil
 }
 
-func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32) error {
+func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32, hashs []chainhash.Hash) error {
 	addrmgrNs := dbtx.ReadBucket(waddrmgrNamespaceKey)
 	txmgrNs := dbtx.ReadWriteBucket(wtxmgrNamespaceKey)
 
@@ -233,7 +235,7 @@ func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32) 
 		return err
 	}
 	if w.EnableOmini() {
-		err = w.RollBackOminiTransaction(uint32(sideChainForkHeight))
+		err = w.RollBackOminiTransaction(uint32(sideChainForkHeight), hashs)
 		if err != nil {
 			return err
 		}
@@ -475,10 +477,35 @@ func GetPayLoadData(PkScript []byte) (bool, []byte) {
 	return false, nil
 }
 
-func (w *Wallet) RollBackOminiTransaction(height uint32) error {
-	heights := height
+// for temp test
+func (w *Wallet) RollBackOminiTransaction(height uint32, hashs []chainhash.Hash) error {
+	if len(hashs) == 0{
+		_, h := w.MainChainTip()
+		height := height
+		for ;height <= uint32(h); height++{
+			//if hashs len = 0, for test
+			err := walletdb.Update(w.db, func(tx walletdb.ReadWriteTx) error {
+				txmgrNs := tx.ReadWriteBucket(wtxmgrNamespaceKey)
+				hash, err := w.TxStore.GetMainChainBlockHashForHeight(txmgrNs, int32(height))
+				hashs = append(hashs, hash)
+				return err
+			})
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	strHashs := make([]string ,0)
+	for _,hash := range hashs{
+		fmt.Println("RollBackOminiTransaction:", hash.String())
+		strHashs = append(strHashs, hash.String())
+	}
+
 	cmd := hcjson.OmniRollBackCmd{
-		Height: heights,
+		Height: height,
+		Hashs:   &strHashs,
 	}
 
 	byteCmd, err := hcjson.MarshalCmd(1, &cmd)

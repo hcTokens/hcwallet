@@ -116,7 +116,7 @@ func getOminiMethod() map[string]LegacyRpcHandler {
 
 func OmniRollBack(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*hcjson.OmniRollBackCmd)
-	err := w.RollBackOminiTransaction(cmd.Height)
+	err := w.RollBackOminiTransaction(cmd.Height, nil)
 
 	return "", err
 }
