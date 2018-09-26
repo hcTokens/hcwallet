@@ -322,7 +322,6 @@ func OmniFundedSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	pairs := map[string]hcutil.Amount{
 		omniFundedSendCmd.Toaddress: MininumAmount,
 	}
-	w.
 	return sendPairsWithPayLoad(w, pairs, account, 1, omniFundedSendCmd.Feeaddress, payLoad, omniFundedSendCmd.Fromaddress)
 }
 
