@@ -473,14 +473,13 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	if err != nil{
 		return nil, err
 	}
-	//
+
 	params := make([]interface{}, 0, 10)
 	params = append(params, txid)
 	params = append(params, omniSenddexsellCmd.Fromaddress)
 	params = append(params, 20)//MSC_TYPE_TRADE_OFFER = 20,
 	params = append(params, omniSenddexsellCmd.Propertyidforsale)
 	params = append(params, omniSenddexsellCmd.Amountforsale)
-
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
 	if err != nil {
 		return nil, err
@@ -490,8 +489,8 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		return nil, err
 	}
 	fmt.Println(string(marshalledJSON))
-	//construct omni variables
-	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))//construct omni variables
+
 	return txid, err
 
 
@@ -763,29 +762,199 @@ func OmniSendclosecrowdsale(icmd interface{}, w *wallet.Wallet) (interface{}, er
 // OmniSendtrade Place a trade offer on the distributed token exchange.
 // $ omnicore-cli "omni_sendtrade" "3BydPiSLPP3DR5cf726hDQ89fpqWLxPKLR" 31 "250.0" 1 "10.0"
 func OmniSendtrade(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendtradeCmd)
-	return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil,err
+	}
+
+	omniSendtradeCmd := icmd.(*hcjson.OmniSendtradeCmd)
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendtradeCmd.Fromaddress,
+		ToAddress:     omniSendtradeCmd.Fromaddress,
+		ChangeAddress: omniSendtradeCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(sendParams, w, payLoad)
+
 }
 
 // OmniSendcanceltradesbyprice Cancel offers on the distributed token exchange with the specified price.
 // $ omnicore-cli "omni_sendcanceltradesbyprice" "3BydPiSLPP3DR5cf726hDQ89fpqWLxPKLR" 31 "100.0" 1 "5.0"
 func OmniSendcanceltradesbyprice(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
+	//return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil,err
+	}
+
+	omniSendcanceltradesbypriceCmd := icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendcanceltradesbypriceCmd.Fromaddress,
+		ToAddress:     omniSendcanceltradesbypriceCmd.Fromaddress,
+		ChangeAddress: omniSendcanceltradesbypriceCmd.Fromaddress,
+		Amount:        1,
+	}
+	txid, err := omniSendToAddress(sendParams, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+
+	params := make([]interface{}, 0, 10)
+	params = append(params, txid)
+	params = append(params, omniSendcanceltradesbypriceCmd.Fromaddress)
+	params = append(params, 26)//MSC_TYPE_METADEX_CANCEL_PRICE = 20,
+	params = append(params, omniSendcanceltradesbypriceCmd.Propertyidforsale)
+	params = append(params, omniSendcanceltradesbypriceCmd.Amountforsale)
+	params = append(params, false)
+	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))//construct omni variables
+
+	return txid,nil
 }
 
 // OmniSendcanceltradesbypair Cancel all offers on the distributed token exchange with the given currency pair.
 // $ omnicore-cli "omni_sendcanceltradesbypair" "3BydPiSLPP3DR5cf726hDQ89fpqWLxPKLR" 1 31
 func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendcanceltradesbypairCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendcanceltradesbypairCmd)
+	//return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil,err
+	}
+
+	omniSendcanceltradesbypriceCmd := icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendcanceltradesbypriceCmd.Fromaddress,
+		ToAddress:     omniSendcanceltradesbypriceCmd.Fromaddress,
+		ChangeAddress: omniSendcanceltradesbypriceCmd.Fromaddress,
+		Amount:        1,
+	}
+
+	txid, err := omniSendToAddress(sendParams, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+
+	params := make([]interface{}, 0, 10)
+	params = append(params, txid)
+	params = append(params, omniSendcanceltradesbypriceCmd.Fromaddress)
+	params = append(params, 27)//MSC_TYPE_METADEX_CANCEL_PAIR = 27,
+	params = append(params, omniSendcanceltradesbypriceCmd.Propertyidforsale)
+	params = append(params, 0)
+	params = append(params, false)
+	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))//construct omni variables
+
+	return txid,nil
+
 }
 
 // OmniSendcancelalltrades Cancel all offers on the distributed token exchange.
 // $ omnicore-cli "omni_sendcancelalltrades" "3BydPiSLPP3DR5cf726hDQ89fpqWLxPKLR" 1
 func OmniSendcancelalltrades(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendcancelalltradesCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendcancelalltradesCmd)
+	//return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil,err
+	}
+
+	omniSendcancelalltradesCmd := icmd.(*hcjson.OmniSendcancelalltradesCmd)
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendcancelalltradesCmd.Fromaddress,
+		ToAddress:     omniSendcancelalltradesCmd.Fromaddress,
+		ChangeAddress: omniSendcancelalltradesCmd.Fromaddress,
+		Amount:        1,
+	}
+	txid, err := omniSendToAddress(sendParams, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+
+	params := make([]interface{}, 0, 10)
+	params = append(params, txid)
+	params = append(params, omniSendcancelalltradesCmd.Fromaddress)
+	params = append(params, 28)//MSC_TYPE_METADEX_CANCEL_ECOSYSTEM = 28,
+	params = append(params, omniSendcancelalltradesCmd.Ecosystem)
+	params = append(params, 0)
+	params = append(params, false)
+	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))//construct omni variables
+
+	return txid,nil
 }
 
 // OmniSendall Transfers all available tokens in the given ecosystem to the recipient.
