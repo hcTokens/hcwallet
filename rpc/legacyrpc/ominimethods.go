@@ -151,7 +151,7 @@ func omni_createpayload_simplesend(icmd interface{}, w *wallet.Wallet) (interfac
 	cmd := icmd.(*hcjson.OmniCreatepayloadSimplesendCmd)
 	byteCmd, err := hcjson.MarshalCmd(1, cmd)
 	if err != nil {
-		return err, nil
+		return nil,err
 	}
 	strReq := string(byteCmd)
 	strRsp := omnilib.JsonCmdReqHcToOm(strReq)
@@ -174,18 +174,18 @@ func omniSendIssuanceFixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	txIdBytes, err := omni_cmdReq(icmd, w)
 	sendIssueCmd := icmd.(*hcjson.OmniSendissuancefixedCmd)
 	if err != nil {
-		return err, nil
+		return nil,err
 	}
 
 	txidStr := ""
 	err = json.Unmarshal(txIdBytes, &txidStr)
 	if err != nil {
-		return err, nil
+		return nil,err
 	}
 
 	payLoad, err := hex.DecodeString(txidStr)
 	if err != nil {
-		return err, nil
+		return nil,err
 	}
 
 	sendParams := &SendFromAddressToAddress{
@@ -536,8 +536,34 @@ func OmniSenddexaccept(icmd interface{}, w *wallet.Wallet) (interface{}, error) 
 // OmniSendissuancecrowdsale Create new tokens as crowdsale.
 // $ omnicore-cli "omni_sendissuancecrowdsale" \     "3JYd75REX3HXn1vAU83YuGfmiPXW7BpYXo" 2 1 0 "Companies" "Bitcoin Mining" \     "Quantum Miner" "" "" 2 "100" 1483228800 30 2
 func OmniSendissuancecrowdsale(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendissuancecrowdsaleCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendissuancecrowdsaleCmd)
+	//return omni_cmdReq(icmd, w)
+
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	omniSendissuancecrowdsaleCmd := icmd.(*hcjson.OmniSendissuancecrowdsaleCmd)
+	if err != nil {
+		return nil,err
+	}
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendissuancecrowdsaleCmd.Fromaddress,
+		ToAddress:     omniSendissuancecrowdsaleCmd.Fromaddress,
+		ChangeAddress: omniSendissuancecrowdsaleCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(sendParams, w, payLoad)
+
 }
 
 // OmniSendissuancefixed Create new tokens with fixed supply.
@@ -695,8 +721,33 @@ func OmniSendrevoke(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSendclosecrowdsale Manually close a crowdsale.
 // $ omnicore-cli "omni_sendclosecrowdsale" "3JYd75REX3HXn1vAU83YuGfmiPXW7BpYXo" 70
 func OmniSendclosecrowdsale(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendclosecrowdsaleCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendclosecrowdsaleCmd)
+	//return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil,err
+	}
+
+	omniSendclosecrowdsaleCmd := icmd.(*hcjson.OmniSendclosecrowdsaleCmd)
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return nil,err
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   omniSendclosecrowdsaleCmd.Fromaddress,
+		ToAddress:     omniSendclosecrowdsaleCmd.Fromaddress,
+		ChangeAddress: omniSendclosecrowdsaleCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(sendParams, w, payLoad)
 }
 
 // OmniSendtrade Place a trade offer on the distributed token exchange.
