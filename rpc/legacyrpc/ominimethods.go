@@ -576,8 +576,33 @@ func OmniSendissuancefixed(icmd interface{}, w *wallet.Wallet) (interface{}, err
 // OmniSendissuancemanaged Create new tokens with manageable supply.
 // $ omnicore-cli "omni_sendissuancemanaged" \     "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" 2 1 0 "Companies" "Bitcoin Mining" "Quantum Miner" "" ""
 func OmniSendissuancemanaged(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendissuancemanagedCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendissuancemanagedCmd)
+	//return omni_cmdReq(icmd, w)
+	txIdBytes, err := omni_cmdReq(icmd, w)
+	sendIssueCmd := icmd.(*hcjson.OmniSendissuancemanagedCmd)
+	if err != nil {
+		return err, nil
+	}
+
+	txidStr := ""
+	err = json.Unmarshal(txIdBytes, &txidStr)
+	if err != nil {
+		return err, nil
+	}
+
+	payLoad, err := hex.DecodeString(txidStr)
+	if err != nil {
+		return err, nil
+	}
+
+	sendParams := &SendFromAddressToAddress{
+		FromAddress:   sendIssueCmd.Fromaddress,
+		ToAddress:     sendIssueCmd.Fromaddress,
+		ChangeAddress: sendIssueCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(sendParams, w, payLoad)
+
 }
 
 // OmniSendsto Create and broadcast a send-to-owners transaction.
@@ -638,8 +663,62 @@ func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSendgrant Issue or grant new units of managed tokens.
 // $ omnicore-cli "omni_sendgrant" "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" "" 51 "7000"
 func OmniSendgrant(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendgrantCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSendgrantCmd)
+	//return omni_cmdReq(icmd, w)
+
+	omniSendGrantCmd := icmd.(*hcjson.OmniSendgrantCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSendGrantCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = decodeAddress(omniSendGrantCmd.Toaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendGrantCmd.Fromaddress,
+		ChangeAddress: omniSendGrantCmd.Toaddress,
+		ToAddress:     omniSendGrantCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(cmd, w, payLoad)
+	/*
+	final, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+	//
+	params := make([]interface{}, 0, 10)
+	params = append(params, omniSendCmd.Fromaddress)
+	params = append(params, omniSendCmd.Propertyid)
+	params = append(params, omniSendCmd.Amount)
+	params = append(params, final)
+	params = append(params, 3)
+
+	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return final, err
+	*/
 }
 
 // OmniSendrevoke Revoke units of managed tokens.
@@ -740,32 +819,6 @@ func OmniSendall(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		Amount:        1,
 	}
 	return omniSendToAddress(cmd, w, payLoad)
-	/*
-		final, err := omniSendToAddress(cmd, w, payLoad)
-		if err != nil{
-			return nil, err
-		}
-		//
-		params := make([]interface{}, 0, 10)
-		params = append(params, omniSendallCmd.Fromaddress)
-		params = append(params, omniSendallCmd.Toaddress)
-		params = append(params, omniSendallCmd.Ecosystem)
-		params = append(params, omniSendallCmd.Redeemaddress)
-		params = append(params, omniSendallCmd.Referenceamount)
-
-		newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
-		if err != nil {
-			return nil, err
-		}
-		marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
-		if err != nil {
-			return nil, err
-		}
-		fmt.Println(string(marshalledJSON))
-		//construct omni variables
-		omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
-		return final, err
-	*/
 }
 
 // OmniSendrawtx Broadcasts a raw Omni Layer transaction.
