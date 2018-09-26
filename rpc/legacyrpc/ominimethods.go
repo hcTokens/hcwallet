@@ -637,9 +637,6 @@ func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSendgrant Issue or grant new units of managed tokens.
 // $ omnicore-cli "omni_sendgrant" "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" "" 51 "7000"
 func OmniSendgrant(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	//_ = icmd.(*hcjson.OmniSendgrantCmd)
-	//return omni_cmdReq(icmd, w)
-
 	omniSendGrantCmd := icmd.(*hcjson.OmniSendgrantCmd)
 	ret, err := omni_cmdReq(icmd, w)
 	if err != nil {
@@ -667,39 +664,32 @@ func OmniSendgrant(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		Amount:        1,
 	}
 	return omniSendToAddress(cmd, w, payLoad)
-	/*
-	final, err := omniSendToAddress(cmd, w, payLoad)
-	if err != nil{
-		return nil, err
-	}
-	//
-	params := make([]interface{}, 0, 10)
-	params = append(params, omniSendCmd.Fromaddress)
-	params = append(params, omniSendCmd.Propertyid)
-	params = append(params, omniSendCmd.Amount)
-	params = append(params, final)
-	params = append(params, 3)
-
-	newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
-	if err != nil {
-		return nil, err
-	}
-	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(string(marshalledJSON))
-	//construct omni variables
-	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
-	return final, err
-	*/
 }
 
 // OmniSendrevoke Revoke units of managed tokens.
 // $ omnicore-cli "omni_sendrevoke" "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" "" 51 "100"
 func OmniSendrevoke(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendrevokeCmd)
-	return omni_cmdReq(icmd, w)
+	omniSendRevokeCmd := icmd.(*hcjson.OmniSendrevokeCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSendRevokeCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendRevokeCmd.Fromaddress,
+		ChangeAddress: omniSendRevokeCmd.Fromaddress,
+		ToAddress:     omniSendRevokeCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(cmd, w, payLoad)
 }
 
 // OmniSendclosecrowdsale Manually close a crowdsale.
