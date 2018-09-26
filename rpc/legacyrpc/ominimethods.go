@@ -448,7 +448,6 @@ func OmniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // $ omnicore-cli "omni_senddexsell" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 1 "1.5" "0.75" 25 "0.0005" 1
 func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
-	////////////////
 	omniSenddexsellCmd := icmd.(*hcjson.OmniSenddexsellCmd)
 	ret, err := omni_cmdReq(icmd, w)
 	if err != nil {
@@ -501,8 +500,37 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSenddexaccept Create and broadcast an accept offer for the specified token and amount.
 // $ omnicore-cli "omni_senddexaccept" \     "35URq1NN3xL6GeRKUP6vzaQVcxoJiiJKd8" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 1 "15.0"
 func OmniSenddexaccept(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSenddexacceptCmd)
-	return omni_cmdReq(icmd, w)
+	//_ = icmd.(*hcjson.OmniSenddexacceptCmd)
+	//return omni_cmdReq(icmd, w)
+
+	omniSenddexacceptCmd := icmd.(*hcjson.OmniSenddexacceptCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSenddexacceptCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSenddexacceptCmd.Fromaddress,
+		ChangeAddress: omniSenddexacceptCmd.Fromaddress,
+		ToAddress:     omniSenddexacceptCmd.Toaddress,
+		Amount:        1,
+	}
+	txid, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+
+	return txid, err
+
 }
 
 // OmniSendissuancecrowdsale Create new tokens as crowdsale.
