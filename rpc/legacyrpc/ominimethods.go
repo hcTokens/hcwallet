@@ -347,8 +347,55 @@ func OmniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSenddexsell Place, update or cancel a sell offer on the traditional distributed OMNI/BTC exchange.
 // $ omnicore-cli "omni_senddexsell" "37FaKponF7zqoMLUjEiko25pDiuVH5YLEa" 1 "1.5" "0.75" 25 "0.0005" 1
 func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSenddexsellCmd)
-	return omni_cmdReq(icmd, w)
+
+	////////////////
+	omniSenddexsellCmd := icmd.(*hcjson.OmniSenddexsellCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSenddexsellCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSenddexsellCmd.Fromaddress,
+		ChangeAddress: omniSenddexsellCmd.Fromaddress,
+		ToAddress:     omniSenddexsellCmd.Fromaddress,
+		Amount:        1,
+	}
+	txid, err := omniSendToAddress(cmd, w, payLoad)
+	if err != nil{
+		return nil, err
+	}
+	//
+	params := make([]interface{}, 0, 10)
+	params = append(params, txid)
+	params = append(params, omniSenddexsellCmd.Fromaddress)
+	params = append(params, 20)//MSC_TYPE_TRADE_OFFER = 20,
+	params = append(params, omniSenddexsellCmd.Propertyidforsale)
+	params = append(params, omniSenddexsellCmd.Amountforsale)
+
+	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
+	if err != nil {
+		return nil, err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return txid, err
+
+
 }
 
 // OmniSenddexaccept Create and broadcast an accept offer for the specified token and amount.
