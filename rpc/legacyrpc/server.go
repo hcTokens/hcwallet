@@ -647,7 +647,7 @@ func (s *Server) postClientRPC(w http.ResponseWriter, r *http.Request) {
 }
 
 //add by ycj 20180910 for handle request,refer:func postClientRPC
-func (s *Server) JsonCmdReq(strRequst string) (string,error){
+func (s *Server) JsonCmdReqOmToHc(strRequst string) (string,error){
 	// First check whether wallet has a handler for this request's method.
 	// If unfound, the request is sent to the chain server for further
 	// processing.  While checking the methods, disallow authenticate

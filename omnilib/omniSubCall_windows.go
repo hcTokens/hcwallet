@@ -13,6 +13,8 @@ import (
 	//"time"
 	"time"
 	"sync"
+	"unsafe"
+	"fmt"
 )
 
 var mutexOmni sync.Mutex
@@ -33,10 +35,11 @@ func OmniStart(strArgs string) {
 
 func OmniCommunicate(netName string) {
 //add by ycj 20180915
+	time.Sleep(time.Second*6)
 	LoadLibAndInit()
 	OmniStart(netName)
 
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second*3)
 	/*
 	strReq := "{\"method\":\"omni_getinfo\",\"params\":[],\"id\":1}\n"
 	strRsp := JsonCmdReqHcToOm(strReq)
@@ -45,28 +48,29 @@ func OmniCommunicate(netName string) {
 	//legacyrpc.JsonCmdReqOmToHc((*C.char)(unsafe.Pointer(uintptr(0))));
 }
 
-/* abolish callback to LegacyRPCServer
+
+var ChanReqOmToHc=make(chan string )
+var ChanRspOmToHc=make(chan string )
+
+// callback to LegacyRPC.Server
 //var PtrLegacyRPCServer *Server=nil
+
 //export JsonCmdReqOmToHc
 func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
-
-	if PtrLegacyRPCServer==nil ||  pcReq==(*C.char)(unsafe.Pointer(uintptr(0))) {
-		return (*C.char)(unsafe.Pointer(uintptr(0)))
-	}
-	strRsp,err:=PtrLegacyRPCServer.JsonCmdReq(C.GoString(pcReq))
-	if err!=nil {
-		return (*C.char)(unsafe.Pointer(uintptr(0)))
-	}
-
+	strReq:=C.GoString(pcReq)
+	fmt.Println("Go JsonCmdReqOmToHc strReq=",strReq)
+	ChanReqOmToHc<-strReq
+	strRsp:=<-ChanRspOmToHc
+	fmt.Println("Go JsonCmdReqOmToHc strRsp=",strRsp)
 	cs := C.CString(strRsp)
 
 	defer func(){
 		go func() {
-			time.Sleep(time.Microsecond*1)
+			time.Sleep(time.Microsecond*200)
 			C.free(unsafe.Pointer(cs))
 		}()
 	}()
 
 	return cs
 }
-*/
+

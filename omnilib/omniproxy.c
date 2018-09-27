@@ -30,6 +30,9 @@ void CLoadLibAndInit()
     funJsonCmdReq= (FunJsonCmdReq)GetProcAddress(hDllInst,"JsonCmdReq");
     funSetCallback= (FunSetCallback)GetProcAddress(hDllInst,"SetCallback");
 
+    if(funSetCallback!=NULL)
+        funSetCallback(INDEX_CALLBACK_GoJsonCmdReq,JsonCmdReqOmToHc);
+
     printf("funJsonCmdReq=%d",funJsonCmdReq);
     return;
 }

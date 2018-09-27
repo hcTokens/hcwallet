@@ -212,14 +212,7 @@ func walletMain() error {
 		netName = "regtest"
 	}
 
-	if cfg.EnableOmini || cfg.TestNet {
-		omnilib.OmniCommunicate(netName)
-		err = recoverOmniData(w)
-		if err != nil {
-			log.Errorf("Failed to recoverOmniData: %v", err)
-			return err
-		}
-	}
+
 	// Add interrupt handlers to shutdown the various process components
 	// before exiting.  Interrupt handlers run in LIFO order, so the wallet
 	// (which should be closed last) is added first.
@@ -251,14 +244,34 @@ func walletMain() error {
 			<-legacyRPCServer.RequestProcessShutdown()
 			simulateInterrupt()
 		}()
+
+		PtrLegacyRPCServer=legacyRPCServer;
+		go func(){
+			for {
+				strReq := <-omnilib.ChanReqOmToHc
+				fmt.Println("Get Req:",strReq)
+				strRsp, _ := PtrLegacyRPCServer.JsonCmdReqOmToHc(strReq)
+				omnilib.ChanRspOmToHc <- strRsp
+			}
+		}()
 	}
+
+	if cfg.EnableOmini || cfg.TestNet {
+		omnilib.OmniCommunicate(netName)
+		err = recoverOmniData(w)
+		if err != nil {
+			log.Errorf("Failed to recoverOmniData: %v", err)
+			return err
+		}
+	}
+
 	<-interruptHandlersDone
 	log.Info("Shutdown complete")
 
 	return nil
 }
 
-//var PtrLegacyRPCServer *legacyrpc.Server=nil
+var PtrLegacyRPCServer *legacyrpc.Server=nil
 
 // startPromptPass prompts the user for a password to unlock their wallet in
 // the event that it was restored from seed or --promptpass flag is set.

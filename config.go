@@ -35,7 +35,7 @@ const (
 	defaultRPCMaxClients       = 10
 	defaultRPCMaxWebsockets    = 25
 	defaultEnableTicketBuyer   = false
-	defaultEnableOmini         = false
+	defaultEnableOmini         = true
 	defaultEnableVoting        = false
 	defaultReuseAddresses      = false
 	defaultRollbackTest        = false
