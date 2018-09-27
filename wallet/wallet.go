@@ -155,7 +155,7 @@ type Wallet struct {
 	MsgReceiver chan string
 
 	//Omini  enable omini function
-	enabaleOmini bool
+	enableOmni bool
 }
 
 // newWallet creates a new Wallet structure with the provided address manager
@@ -164,7 +164,7 @@ func newWallet(votingEnabled bool, addressReuse bool, ticketAddress hcutil.Addre
 	poolAddress hcutil.Address, pf float64, relayFee, ticketFee hcutil.Amount,
 	gapLimit int, stakePoolColdAddrs map[string]struct{}, AllowHighFees bool,
 	mgr *udb.Manager, txs *udb.Store, smgr *udb.StakeStore, db *walletdb.DB,
-	params *chaincfg.Params, privpass []byte, enableOmini bool) (*Wallet, error) {
+	params *chaincfg.Params, privpass []byte, enableOmni bool) (*Wallet, error) {
 
 	w := &Wallet{
 		db:                       *db,
@@ -199,7 +199,7 @@ func newWallet(votingEnabled bool, addressReuse bool, ticketAddress hcutil.Addre
 		lockState:                make(chan bool),
 		changePassphrase:         make(chan changePassphraseRequest),
 		chainParams:              params,
-		enabaleOmini:             enableOmini,
+		enableOmni:             enableOmni,
 		quit:                     make(chan struct{}),
 	}
 
@@ -546,9 +546,9 @@ func (w *Wallet) SetInitiallyUnlocked(set bool) {
 	w.initiallyUnlocked = set
 }
 
-// EnableOmini
-func (w *Wallet) EnableOmini() bool {
-	return w.enabaleOmini
+// EnableOmni
+func (w *Wallet) EnableOmni() bool {
+	return w.enableOmni
 }
 
 // Start starts the goroutines necessary to manage a wallet.
@@ -1205,7 +1205,7 @@ func (w *Wallet) syncWithChain(chainClient *hcrpcclient.Client) error {
 	if err != nil {
 		return err
 	}
-	err = chainClient.SetParams(w.EnableOmini())
+	err = chainClient.SetParams(w.EnableOmni())
 	if err != nil {
 		return err
 	}
@@ -1213,7 +1213,7 @@ func (w *Wallet) syncWithChain(chainClient *hcrpcclient.Client) error {
 	// rescan is necessary, and when to begin it.
 	fetchedHeaderCount := 0
 	rescanStart := chainhash.Hash{}
-	if w.EnableOmini() {
+	if w.EnableOmni() {
 		_, _, _, _, height, err := w.FetchHeaders(chainClient)
 		if err != nil {
 			return err
@@ -4273,7 +4273,7 @@ func decodeStakePoolColdExtKey(encStr string, params *chaincfg.Params) (map[stri
 func Open(db walletdb.DB, pubPass []byte, privPass []byte, votingEnabled bool, addressReuse bool,
 	ticketAddress hcutil.Address, poolAddress hcutil.Address, poolFees float64, ticketFee float64,
 	gapLimit int, stakePoolColdExtKey string, allowHighFees bool,
-	relayFee float64, enableOmini bool, params *chaincfg.Params) (*Wallet, error) {
+	relayFee float64, enableOmni bool, params *chaincfg.Params) (*Wallet, error) {
 
 	// Migrate to the unified DB if necessary.
 	needsMigration, err := udb.NeedsMigration(db)
@@ -4333,7 +4333,7 @@ func Open(db walletdb.DB, pubPass []byte, privPass []byte, votingEnabled bool, a
 		&db,
 		params,
 		privPass,
-		enableOmini,
+		enableOmni,
 	)
 	if err != nil {
 		return nil, err

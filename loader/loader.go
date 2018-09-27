@@ -47,7 +47,7 @@ type Loader struct {
 	relayFee        float64
 
 	//omini
-	enableOmini bool
+	enableOmni bool
 }
 
 // StakeOptions contains the various options necessary for stake mining.
@@ -64,7 +64,7 @@ type StakeOptions struct {
 
 // NewLoader constructs a Loader.
 func NewLoader(chainParams *chaincfg.Params, dbDirPath string, stakeOptions *StakeOptions, addrIdxScanLen int,
-	allowHighFees bool, relayFee float64, enableOmini bool) *Loader {
+	allowHighFees bool, relayFee float64, enableOmni bool) *Loader {
 
 	return &Loader{
 		chainParams:    chainParams,
@@ -73,7 +73,7 @@ func NewLoader(chainParams *chaincfg.Params, dbDirPath string, stakeOptions *Sta
 		addrIdxScanLen: addrIdxScanLen,
 		allowHighFees:  allowHighFees,
 		relayFee:       relayFee,
-		enableOmini:    enableOmini,
+		enableOmni:     enableOmni,
 	}
 }
 
@@ -170,7 +170,7 @@ func (l *Loader) CreateNewWallet(pubPassphrase, privPassphrase, seed []byte) (w 
 	w, err = wallet.Open(db, pubPassphrase, privPassphrase, so.VotingEnabled, so.AddressReuse,
 		so.TicketAddress, so.PoolAddress, so.PoolFees, so.TicketFee,
 		l.addrIdxScanLen, so.StakePoolColdExtKey, l.allowHighFees,
-		l.relayFee, l.enableOmini, l.chainParams)
+		l.relayFee, l.enableOmni, l.chainParams)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (l *Loader) OpenExistingWallet(pubPassphrase []byte, privPassphrase []byte)
 	w, err = wallet.Open(db, pubPassphrase, privPassphrase, so.VotingEnabled, so.AddressReuse,
 		so.TicketAddress, so.PoolAddress, so.PoolFees, so.TicketFee,
 		l.addrIdxScanLen, so.StakePoolColdExtKey, l.allowHighFees,
-		l.relayFee, l.enableOmini, l.chainParams)
+		l.relayFee, l.enableOmni, l.chainParams)
 	if err != nil {
 		return nil, err
 	}

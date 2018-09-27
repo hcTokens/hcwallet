@@ -126,7 +126,7 @@ func walletMain() error {
 	}
 
 	loader := ldr.NewLoader(activeNet.Params, dbDir, stakeOptions,
-		cfg.AddrIdxScanLen, cfg.AllowHighFees, cfg.RelayFee.ToCoin(), cfg.EnableOmini)
+		cfg.AddrIdxScanLen, cfg.AllowHighFees, cfg.RelayFee.ToCoin(), cfg.EnableOmni)
 
 	passphrase := []byte{}
 	if !cfg.NoInitialLoad {
@@ -255,7 +255,7 @@ func walletMain() error {
 		}()
 	}
 
-	if cfg.EnableOmini {
+	if cfg.EnableOmni {
 		omnilib.OmniCommunicate(netName)
 		//err = recoverOmniData(w)
 		//if err != nil {

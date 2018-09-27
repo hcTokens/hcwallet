@@ -228,7 +228,7 @@ func (w *Wallet) RollBack(dbtx walletdb.ReadWriteTx, sideChainForkHeight int32, 
 	if err != nil {
 		return err
 	}
-	if w.EnableOmini() {
+	if w.EnableOmni() {
 		err = w.RollBackOminiTransaction(uint32(sideChainForkHeight), hashs)
 		if err != nil {
 			return err
@@ -676,7 +676,7 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 		}
 		// If a transaction record for this tx hash and block already exist, there is nothing left to do.
 
-		if w.EnableOmini() {
+		if w.EnableOmni() {
 			err = w.ProcessOminiTransaction(rec, blockMeta)
 			if err != nil {
 				return err
