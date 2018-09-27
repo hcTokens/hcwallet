@@ -379,11 +379,11 @@ func omniSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 	//
 	params := make([]interface{}, 0, 10)
-	params = append(params, omniSendCmd.Fromaddress)
-	params = append(params, omniSendCmd.Propertyid)
-	params = append(params, 0)
-	params = append(params, omniSendCmd.Amount)
 	params = append(params, final)
+	params = append(params, omniSendCmd.Fromaddress)
+	params = append(params, 0)
+	params = append(params, omniSendCmd.Propertyid)
+	params = append(params, omniSendCmd.Amount)
 	params = append(params, true)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
 	if err != nil {
@@ -684,11 +684,11 @@ func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	}
 	//
 	params := make([]interface{}, 0, 10)
-	params = append(params, omniSendCmd.Fromaddress)
-	params = append(params, omniSendCmd.Propertyid)
-	params = append(params, 3)
-	params = append(params, omniSendCmd.Amount)
 	params = append(params, final)
+	params = append(params, omniSendCmd.Fromaddress)
+	params = append(params, 3)
+	params = append(params, omniSendCmd.Propertyid)
+	params = append(params, omniSendCmd.Amount)
 	params = append(params, true)
 
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
