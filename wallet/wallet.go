@@ -1093,7 +1093,7 @@ func (w *Wallet) FetchHeaders(chainClient *hcrpcclient.Client) (count int, resca
 		commonAncestor       chainhash.Hash
 		commonAncestorHeight int32
 	)
-	hashs := make([]chainhash.Hash,0)
+	hashs := make([]chainhash.Hash, 0)
 	err = walletdb.Update(w.db, func(tx walletdb.ReadWriteTx) error {
 		txmgrNs := tx.ReadWriteBucket(wtxmgrNamespaceKey)
 		commonAncestor, commonAncestorHeight = w.TxStore.MainChainTip(txmgrNs)
@@ -1208,9 +1208,20 @@ func (w *Wallet) syncWithChain(chainClient *hcrpcclient.Client) error {
 
 	// Fetch headers for unseen blocks in the main chain, determine whether a
 	// rescan is necessary, and when to begin it.
-	fetchedHeaderCount, rescanStart, _, _, _, err := w.FetchHeaders(chainClient)
-	if err != nil {
-		return err
+	fetchedHeaderCount := 0
+	rescanStart := chainhash.Hash{}
+	if w.EnableOmini() {
+		_, _, _, _, height, err := w.FetchHeaders(chainClient)
+		if err != nil {
+			return err
+		}
+		fetchedHeaderCount = int(height)
+		rescanStart = *w.chainParams.GenesisHash
+	} else {
+		fetchedHeaderCount, rescanStart, _, _, _, err = w.FetchHeaders(chainClient)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Rescan when necessary.
@@ -4109,7 +4120,7 @@ func (w *Wallet) PublishTransaction(tx *wire.MsgTx, serializedTx []byte, client 
 
 	var txHash *chainhash.Hash
 	err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-		err := w.processSerializedTransaction(dbtx, serializedTx, nil, nil)
+		err := w.processSerializedTransaction(dbtx, serializedTx, nil, false, nil)
 		if err != nil {
 			return err
 		}
