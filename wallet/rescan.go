@@ -27,6 +27,8 @@ const maxBlocksPerRescan = 2000
 func (w *Wallet) rescan(chainClient *hcrpcclient.Client, startHash *chainhash.Hash, height int32,
 	p chan<- RescanProgress, cancel <-chan struct{}) error {
 
+	w.OmniClear()
+
 	blockHashStorage := make([]chainhash.Hash, maxBlocksPerRescan)
 	rescanFrom := *startHash
 	inclusive := true
@@ -114,7 +116,6 @@ func (w *Wallet) rescan(chainClient *hcrpcclient.Client, startHash *chainhash.Ha
 // returned channel, the error will be logged and the channel will be closed.
 func (w *Wallet) Rescan(chainClient *hcrpcclient.Client, startHash *chainhash.Hash) <-chan error {
 	errc := make(chan error)
-
 	go func() (err error) {
 		defer func() {
 			select {

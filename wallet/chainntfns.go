@@ -520,6 +520,21 @@ func (w *Wallet) RollBackOminiTransaction(height uint32, hashs []chainhash.Hash)
 	}
 }
 
+func (w*Wallet) OmniClear() error {
+	cmd, err := hcjson.NewCmd("omni_clear")
+	if err != nil {
+		return err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	return nil
+}
+
 func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.BlockMeta) error {
 	if len(rec.MsgTx.TxIn) == 0 {
 		return nil
