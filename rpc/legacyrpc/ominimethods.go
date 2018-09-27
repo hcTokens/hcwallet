@@ -836,12 +836,14 @@ func OmniSendtrade(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 func OmniSendcanceltradesbyprice(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	//_ = icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
 	//return omni_cmdReq(icmd, w)
+	omniSendcanceltradesbypriceCmd := icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
+
 	txIdBytes, err := omni_cmdReq(icmd, w)
 	if err != nil {
 		return nil,err
 	}
 
-	omniSendcanceltradesbypriceCmd := icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
+
 
 	txidStr := ""
 	err = json.Unmarshal(txIdBytes, &txidStr)
@@ -868,7 +870,7 @@ func OmniSendcanceltradesbyprice(icmd interface{}, w *wallet.Wallet) (interface{
 	params := make([]interface{}, 0, 10)
 	params = append(params, txid)
 	params = append(params, omniSendcanceltradesbypriceCmd.Fromaddress)
-	params = append(params, 26)//MSC_TYPE_METADEX_CANCEL_PRICE = 20,
+	params = append(params, 26)//MSC_TYPE_METADEX_CANCEL_PRICE = 26,
 	params = append(params, omniSendcanceltradesbypriceCmd.Propertyidforsale)
 	params = append(params, omniSendcanceltradesbypriceCmd.Amountforsale)
 	params = append(params, false)
@@ -891,12 +893,12 @@ func OmniSendcanceltradesbyprice(icmd interface{}, w *wallet.Wallet) (interface{
 func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	//_ = icmd.(*hcjson.OmniSendcanceltradesbypairCmd)
 	//return omni_cmdReq(icmd, w)
+	omniSendcanceltradesbypairCmd := icmd.(*hcjson.OmniSendcanceltradesbypairCmd)
+
 	txIdBytes, err := omni_cmdReq(icmd, w)
 	if err != nil {
 		return nil,err
 	}
-
-	omniSendcanceltradesbypriceCmd := icmd.(*hcjson.OmniSendcanceltradesbypriceCmd)
 
 	txidStr := ""
 	err = json.Unmarshal(txIdBytes, &txidStr)
@@ -910,9 +912,9 @@ func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}
 	}
 
 	sendParams := &SendFromAddressToAddress{
-		FromAddress:   omniSendcanceltradesbypriceCmd.Fromaddress,
-		ToAddress:     omniSendcanceltradesbypriceCmd.Fromaddress,
-		ChangeAddress: omniSendcanceltradesbypriceCmd.Fromaddress,
+		FromAddress:   omniSendcanceltradesbypairCmd.Fromaddress,
+		ToAddress:     omniSendcanceltradesbypairCmd.Fromaddress,
+		ChangeAddress: omniSendcanceltradesbypairCmd.Fromaddress,
 		Amount:        1,
 	}
 
@@ -923,9 +925,9 @@ func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}
 
 	params := make([]interface{}, 0, 10)
 	params = append(params, txid)
-	params = append(params, omniSendcanceltradesbypriceCmd.Fromaddress)
+	params = append(params, omniSendcanceltradesbypairCmd.Fromaddress)
 	params = append(params, 27)//MSC_TYPE_METADEX_CANCEL_PAIR = 27,
-	params = append(params, omniSendcanceltradesbypriceCmd.Propertyidforsale)
+	params = append(params, omniSendcanceltradesbypairCmd.Propertyidforsale)
 	params = append(params, "0")
 	params = append(params, false)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
@@ -948,12 +950,12 @@ func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}
 func OmniSendcancelalltrades(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	//_ = icmd.(*hcjson.OmniSendcancelalltradesCmd)
 	//return omni_cmdReq(icmd, w)
+	omniSendcancelalltradesCmd := icmd.(*hcjson.OmniSendcancelalltradesCmd)
+
 	txIdBytes, err := omni_cmdReq(icmd, w)
 	if err != nil {
 		return nil,err
 	}
-
-	omniSendcancelalltradesCmd := icmd.(*hcjson.OmniSendcancelalltradesCmd)
 
 	txidStr := ""
 	err = json.Unmarshal(txIdBytes, &txidStr)
