@@ -1205,7 +1205,10 @@ func (w *Wallet) syncWithChain(chainClient *hcrpcclient.Client) error {
 	if err != nil {
 		return err
 	}
-
+	err = chainClient.SetParams(w.EnableOmini())
+	if err != nil {
+		return err
+	}
 	// Fetch headers for unseen blocks in the main chain, determine whether a
 	// rescan is necessary, and when to begin it.
 	fetchedHeaderCount := 0
