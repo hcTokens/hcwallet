@@ -51,7 +51,7 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 		case chain.RelevantTxAccepted:
 			notificationName = "relevanttxaccepted"
 			err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-				return w.processSerializedTransaction(dbtx, n.Transaction, nil, false, nil)
+				return w.processSerializedTransaction(dbtx, n.Transaction, nil, nil)
 			})
 			if err == nil {
 				err = walletdb.View(w.db, func(tx walletdb.ReadTx) error {
@@ -145,7 +145,7 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 	}
 
 	for _, serializedTx := range transactions {
-		err = w.processSerializedTransaction(dbtx, serializedTx, &block.SerializedHeader, false, &blockMeta)
+		err = w.processSerializedTransaction(dbtx, serializedTx, &block.SerializedHeader, &blockMeta)
 		if err != nil {
 			return err
 		}
@@ -443,9 +443,7 @@ func (w *Wallet) evaluateStakePoolTicket(rec *udb.TxRecord,
 	return true, nil
 }
 
-func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, serializedTx []byte,
-	serializedHeader *udb.RawBlockHeader, isRecan bool, blockMeta *udb.BlockMeta) error {
-
+func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, serializedTx []byte, serializedHeader *udb.RawBlockHeader, blockMeta *udb.BlockMeta) error {
 	rec, err := udb.NewTxRecord(serializedTx, time.Now())
 	if err != nil {
 		return err
@@ -456,7 +454,7 @@ func (w *Wallet) processSerializedTransaction(dbtx walletdb.ReadWriteTx, seriali
 			fmt.Println(tempOut)
 		}
 	}
-	return w.processTransactionRecord(dbtx, rec, serializedHeader, isRecan, blockMeta)
+	return w.processTransactionRecord(dbtx, rec, serializedHeader, blockMeta)
 }
 
 func GetPayLoadData(PkScript []byte) (bool, []byte) {
@@ -633,7 +631,7 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 	return nil
 }
 
-func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.TxRecord, serializedHeader *udb.RawBlockHeader, isRecan bool, blockMeta *udb.BlockMeta) error {
+func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.TxRecord, serializedHeader *udb.RawBlockHeader, blockMeta *udb.BlockMeta) error {
 
 	addrmgrNs := dbtx.ReadWriteBucket(waddrmgrNamespaceKey)
 	stakemgrNs := dbtx.ReadWriteBucket(wstakemgrNamespaceKey)
@@ -657,16 +655,13 @@ func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.Tx
 			return nil
 		}
 	} else {
-		existTx := w.TxStore.ExistsTx(txmgrNs, &rec.Hash)
-
 		err = w.TxStore.InsertMinedTx(txmgrNs, addrmgrNs, rec, &blockMeta.Hash)
 		if err != nil {
 			return err
 		}
-		// If a transaction record for this tx hash and block already exist,
-		// there is nothing left to do.
+		// If a transaction record for this tx hash and block already exist, there is nothing left to do.
 
-		if (!existTx || isRecan) && w.EnableOmini() {
+		if w.EnableOmini() {
 			err = w.ProcessOminiTransaction(rec, blockMeta)
 			if err != nil {
 				return err
@@ -1105,8 +1100,7 @@ func selectOwnedTickets(w *Wallet, dbtx walletdb.ReadTx, tickets []*chainhash.Ha
 
 // handleWinningTickets receives a list of hashes and some block information
 // and submits it to the wstakemgr to handle SSGen production.
-func (w *Wallet) handleWinningTickets(blockHash *chainhash.Hash,
-	blockHeight int32, winningTicketHashes []*chainhash.Hash) error {
+func (w *Wallet) handleWinningTickets(blockHash *chainhash.Hash, blockHeight int32, winningTicketHashes []*chainhash.Hash) error {
 
 	if !w.votingEnabled || blockHeight < int32(w.chainParams.StakeValidationHeight)-1 {
 		return nil
@@ -1197,7 +1191,7 @@ func (w *Wallet) handleWinningTickets(blockHash *chainhash.Hash,
 			}
 			voteHash := &txRec.Hash
 			err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-				err := w.processTransactionRecord(dbtx, txRec, nil, false, nil)
+				err := w.processTransactionRecord(dbtx, txRec, nil, nil)
 				if err != nil {
 					return err
 				}
@@ -1311,7 +1305,7 @@ func (w *Wallet) handleMissedTickets(blockHash *chainhash.Hash, blockHeight int3
 		}
 		revocationHash := &txRec.Hash
 		err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-			err := w.processTransactionRecord(dbtx, txRec, nil, false, nil)
+			err := w.processTransactionRecord(dbtx, txRec, nil, nil)
 			if err != nil {
 				return err
 			}

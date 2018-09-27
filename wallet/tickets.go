@@ -384,7 +384,7 @@ func (w *Wallet) RevokeTickets(chainClient *hcrpcclient.Client) error {
 			}
 			// Could be more efficient by avoiding processTransaction, as we
 			// know it is a revocation.
-			err = w.processTransactionRecord(dbtx, rec, nil, false, nil)
+			err = w.processTransactionRecord(dbtx, rec, nil, nil)
 			if err != nil {
 				return err
 			}
