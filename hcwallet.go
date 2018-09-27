@@ -9,6 +9,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -256,7 +257,7 @@ func walletMain() error {
 		}()
 	}
 
-	if cfg.EnableOmini || cfg.TestNet {
+	if cfg.EnableOmini {
 		omnilib.OmniCommunicate(netName)
 		err = recoverOmniData(w)
 		if err != nil {
@@ -452,7 +453,6 @@ func startChainRPC(certs []byte) (*chain.RPCClient, error) {
 }
 
 func recoverOmniData(w *wallet.Wallet) error {
-	return nil
 	// 1 read hash
 	var cmd hcjson.OmniReadAllTxHashCmd
 
@@ -462,17 +462,21 @@ func recoverOmniData(w *wallet.Wallet) error {
 	}
 
 	rv := reflect.ValueOf(strResponse)
-	if rv.IsNil() {
-		return fmt.Errorf("OmniData value error")
-	}
 	buf := rv.Bytes()
 	buf = buf[1 : len(buf)-1]
-	if len(buf) == 0 {
+	if len(buf) == 0{
 		log.Infof("recoverOmniData omni no data")
 		return nil
 	}
-	Hashs := strings.Split(string(buf), ":")
 
+	strBuf := string(buf)
+	strBuf = strings.Replace(strBuf,`\`,``,-1)
+
+	var Hashs []string
+	err = json.Unmarshal([]byte(strBuf), &Hashs)
+	if err != nil {
+		return err
+	}
 	for _, txHash := range Hashs {
 		txSha, err := chainhash.NewHashFromStr(txHash)
 		if err != nil {

@@ -1093,10 +1093,9 @@ func (w *Wallet) FetchHeaders(chainClient *hcrpcclient.Client) (count int, resca
 		commonAncestor       chainhash.Hash
 		commonAncestorHeight int32
 	)
+	hashs := make([]chainhash.Hash,0)
 	err = walletdb.Update(w.db, func(tx walletdb.ReadWriteTx) error {
-		addrmgrNs := tx.ReadBucket(waddrmgrNamespaceKey)
 		txmgrNs := tx.ReadWriteBucket(wtxmgrNamespaceKey)
-
 		commonAncestor, commonAncestorHeight = w.TxStore.MainChainTip(txmgrNs)
 		hash, height := commonAncestor, commonAncestorHeight
 
@@ -1106,6 +1105,8 @@ func (w *Wallet) FetchHeaders(chainClient *hcrpcclient.Client) (count int, resca
 				// found it
 				break
 			}
+
+			hashs = append(hashs, hash)
 
 			height--
 			hash, err = w.TxStore.GetMainChainBlockHashForHeight(txmgrNs, height)
@@ -1123,7 +1124,7 @@ func (w *Wallet) FetchHeaders(chainClient *hcrpcclient.Client) (count int, resca
 		// now begin here, avoiding any issues with calling getheaders with
 		// side chain hashes.
 		log.Infof("rollback from current height %n to height %n", commonAncestorHeight, height+1)
-		return w.TxStore.Rollback(txmgrNs, addrmgrNs, height+1)
+		return w.RollBack(tx, height+1, hashs)
 	})
 	if err != nil {
 		return

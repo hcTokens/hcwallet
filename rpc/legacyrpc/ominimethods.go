@@ -116,7 +116,7 @@ func getOminiMethod() map[string]LegacyRpcHandler {
 
 func OmniRollBack(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	cmd := icmd.(*hcjson.OmniRollBackCmd)
-	err := w.RollBackOminiTransaction(cmd.Height)
+	err := w.RollBackOminiTransaction(cmd.Height, nil)
 
 	return "", err
 }
@@ -308,6 +308,40 @@ func OmniSendunfreeze(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return sendPairsWithPayLoad(w, pairs, account, 1, "", payLoad, omniSendunfreezeCmd.Fromaddress)
 }
 
+// OmniFundedSend Creates and sends a funded simple send transaction.,All bitcoins from the sender are consumed and if there are bitcoins missing, they are taken from the specified fee source. Change is sent to the fee source!
+// $ omnicore-cli "omni_funded_send" "1DFa5bT6KMEr6ta29QJouainsjaNBsJQhH" \     "15cWrfuvMxyxGst2FisrQcvcpF48x6sXoH" 1 "100.0" \     "15Jhzz4omEXEyFKbdcccJwuVPea5LqsKM1"
+func OmniFundedSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniFundedSendCmd := icmd.(*hcjson.OmniFundedSendCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniFundedSendCmd.Toaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniFundedSendCmd.Feeaddress, payLoad, omniFundedSendCmd.Fromaddress)
+}
+
+// OmniFundedSendall Creates and sends a transaction that transfers all available tokens in the given ecosystem to the recipient.,All bitcoins from the sender are consumed and if there are bitcoins missing, they are taken from the specified fee source. Change is sent to the fee source!
+// $ omnicore-cli "omni_funded_sendall" "1DFa5bT6KMEr6ta29QJouainsjaNBsJQhH" \     "15cWrfuvMxyxGst2FisrQcvcpF48x6sXoH" 1 "15Jhzz4omEXEyFKbdcccJwuVPea5LqsKM1"
+func OmniFundedSendall(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	account := uint32(udb.DefaultAccountNum)
+	omniFundedSendallCmd := icmd.(*hcjson.OmniFundedSendallCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	pairs := map[string]hcutil.Amount{
+		omniFundedSendallCmd.Toaddress: MininumAmount,
+	}
+	return sendPairsWithPayLoad(w, pairs, account, 1, omniFundedSendallCmd.Feeaddress, payLoad, omniFundedSendallCmd.Fromaddress)
+}
+
 func omniGetBalance(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return omni_cmdReq(icmd, w)
 }
@@ -430,6 +464,17 @@ func sendPairsWithPayLoad(w *wallet.Wallet, amounts map[string]hcutil.Amount, ac
 	return txSha.String(), err
 }
 
+// OmniGetproperty Returns details for about the tokens or smart property to lookup.
+// $ omnicore-cli "omni_getproperty" 3
+func OmniGetproperty(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
+	omniGetpropertyCmd := icmd.(*hcjson.OmniGetpropertyCmd)
+	_, int32Height := w.MainChainTip()
+	var height int64
+	height = int64(int32Height)
+	omniGetpropertyCmd.CurrentHeight = &height
+	return omni_cmdReq(omniGetpropertyCmd, w)
+}
+
 func OmniReadAllTxHash(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	//var cmd hcjson.OmniReadAllTxHashCmd
 	return omni_cmdReq(icmd, w)
@@ -470,14 +515,14 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		Amount:        1,
 	}
 	txid, err := omniSendToAddress(cmd, w, payLoad)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	params := make([]interface{}, 0, 10)
 	params = append(params, txid)
 	params = append(params, omniSenddexsellCmd.Fromaddress)
-	params = append(params, 20)//MSC_TYPE_TRADE_OFFER = 20,
+	params = append(params, 20) //MSC_TYPE_TRADE_OFFER = 20,
 	params = append(params, omniSenddexsellCmd.Propertyidforsale)
 	params = append(params, omniSenddexsellCmd.Amountforsale)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
@@ -492,7 +537,6 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))//construct omni variables
 
 	return txid, err
-
 
 }
 
@@ -524,7 +568,7 @@ func OmniSenddexaccept(icmd interface{}, w *wallet.Wallet) (interface{}, error) 
 		Amount:        1,
 	}
 	txid, err := omniSendToAddress(cmd, w, payLoad)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
@@ -622,10 +666,10 @@ func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		return nil, err
 	}
 
-//	_, err = decodeAddress(omniSendCmd.Toaddress, w.ChainParams())
-//	if err != nil {
-//		return nil, err
-//	}
+	//	_, err = decodeAddress(omniSendCmd.Toaddress, w.ChainParams())
+	//	if err != nil {
+	//		return nil, err
+	//	}
 
 	cmd := &SendFromAddressToAddress{
 		FromAddress:   omniSendCmd.Fromaddress,
@@ -634,7 +678,7 @@ func OmniSendsto(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		Amount:        1,
 	}
 	final, err := omniSendToAddress(cmd, w, payLoad)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 	//
@@ -684,37 +728,44 @@ func OmniSendgrant(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
 	cmd := &SendFromAddressToAddress{
 		FromAddress:   omniSendGrantCmd.Fromaddress,
-		ChangeAddress: omniSendGrantCmd.Toaddress,
-		ToAddress:     omniSendGrantCmd.Fromaddress,
+		ChangeAddress: omniSendGrantCmd.Fromaddress,
+		ToAddress:     omniSendGrantCmd.Toaddress,
 		Amount:        1,
 	}
 	return omniSendToAddress(cmd, w, payLoad)
+	/*
+		final, err := omniSendToAddress(cmd, w, payLoad)
+		if err != nil{
+			return nil, err
+		}
+		//
+		params := make([]interface{}, 0, 10)
+		params = append(params, omniSendCmd.Fromaddress)
+		params = append(params, omniSendCmd.Propertyid)
+		params = append(params, omniSendCmd.Amount)
+		params = append(params, final)
+		params = append(params, 3)
+
+		newCmd, err := hcjson.NewCmd("omni_padding_add", params...)
+		if err != nil {
+			return nil, err
+		}
+		marshalledJSON, err := hcjson.MarshalCmd(1, newCmd)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println(string(marshalledJSON))
+		//construct omni variables
+		omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+		return final, err
+	*/
 }
 
 // OmniSendrevoke Revoke units of managed tokens.
 // $ omnicore-cli "omni_sendrevoke" "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" "" 51 "100"
 func OmniSendrevoke(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	omniSendRevokeCmd := icmd.(*hcjson.OmniSendrevokeCmd)
-	ret, err := omni_cmdReq(icmd, w)
-	if err != nil {
-		return nil, err
-	}
-	hexStr := strings.Trim(string(ret), "\"")
-	payLoad, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return nil, err
-	}
-	_, err = decodeAddress(omniSendRevokeCmd.Fromaddress, w.ChainParams())
-	if err != nil {
-		return nil, err
-	}
-	cmd := &SendFromAddressToAddress{
-		FromAddress:   omniSendRevokeCmd.Fromaddress,
-		ChangeAddress: omniSendRevokeCmd.Fromaddress,
-		ToAddress:     omniSendRevokeCmd.Fromaddress,
-		Amount:        1,
-	}
-	return omniSendToAddress(cmd, w, payLoad)
+	_ = icmd.(*hcjson.OmniSendrevokeCmd)
+	return omni_cmdReq(icmd, w)
 }
 
 // OmniSendclosecrowdsale Manually close a crowdsale.
@@ -987,20 +1038,6 @@ func OmniSendrawtx(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	return omni_cmdReq(icmd, w)
 }
 
-// OmniFundedSend Creates and sends a funded simple send transaction.,All bitcoins from the sender are consumed and if there are bitcoins missing, they are taken from the specified fee source. Change is sent to the fee source!
-// $ omnicore-cli "omni_funded_send" "1DFa5bT6KMEr6ta29QJouainsjaNBsJQhH" \     "15cWrfuvMxyxGst2FisrQcvcpF48x6sXoH" 1 "100.0" \     "15Jhzz4omEXEyFKbdcccJwuVPea5LqsKM1"
-func OmniFundedSend(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniFundedSendCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniFundedSendall Creates and sends a transaction that transfers all available tokens in the given ecosystem to the recipient.,All bitcoins from the sender are consumed and if there are bitcoins missing, they are taken from the specified fee source. Change is sent to the fee source!
-// $ omnicore-cli "omni_funded_sendall" "1DFa5bT6KMEr6ta29QJouainsjaNBsJQhH" \     "15cWrfuvMxyxGst2FisrQcvcpF48x6sXoH" 1 "15Jhzz4omEXEyFKbdcccJwuVPea5LqsKM1"
-func OmniFundedSendall(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniFundedSendallCmd)
-	return omni_cmdReq(icmd, w)
-}
-
 // OmniGetinfo Returns various state information of the client and protocol.
 // $ omnicore-cli "omni_getinfo"
 func OmniGetinfo(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
@@ -1082,13 +1119,6 @@ func OmniGetactivedexsells(icmd interface{}, w *wallet.Wallet) (interface{}, err
 // $ omnicore-cli "omni_listproperties"
 func OmniListproperties(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	_ = icmd.(*hcjson.OmniListpropertiesCmd)
-	return omni_cmdReq(icmd, w)
-}
-
-// OmniGetproperty Returns details for about the tokens or smart property to lookup.
-// $ omnicore-cli "omni_getproperty" 3
-func OmniGetproperty(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniGetpropertyCmd)
 	return omni_cmdReq(icmd, w)
 }
 
