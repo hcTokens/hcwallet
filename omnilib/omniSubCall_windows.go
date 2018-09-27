@@ -35,11 +35,10 @@ func OmniStart(strArgs string) {
 
 func OmniCommunicate(netName string) {
 //add by ycj 20180915
-	time.Sleep(time.Second*6)
 	LoadLibAndInit()
 	OmniStart(netName)
 
-	time.Sleep(time.Second*3)
+	time.Sleep(time.Second*2)
 	/*
 	strReq := "{\"method\":\"omni_getinfo\",\"params\":[],\"id\":1}\n"
 	strRsp := JsonCmdReqHcToOm(strReq)
