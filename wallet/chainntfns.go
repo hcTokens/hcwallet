@@ -546,6 +546,10 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 		fmt.Printf(err.Error())
 		return err
 	}
+	if txDetail == nil {
+		return fmt.Errorf("local no tx:%v", sendIn.PreviousOutPoint)
+	}
+
 	vout := txDetail.TxRecord.MsgTx.TxOut[sendIn.PreviousOutPoint.Index]
 
 	_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, vout.PkScript, w.ChainParams())
