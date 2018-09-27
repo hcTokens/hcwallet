@@ -926,7 +926,7 @@ func OmniSendcanceltradesbypair(icmd interface{}, w *wallet.Wallet) (interface{}
 	params = append(params, omniSendcanceltradesbypriceCmd.Fromaddress)
 	params = append(params, 27)//MSC_TYPE_METADEX_CANCEL_PAIR = 27,
 	params = append(params, omniSendcanceltradesbypriceCmd.Propertyidforsale)
-	params = append(params, 0)
+	params = append(params, "0")
 	params = append(params, false)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
 	if err != nil {
@@ -982,7 +982,7 @@ func OmniSendcancelalltrades(icmd interface{}, w *wallet.Wallet) (interface{}, e
 	params = append(params, omniSendcancelalltradesCmd.Fromaddress)
 	params = append(params, 28)//MSC_TYPE_METADEX_CANCEL_ECOSYSTEM = 28,
 	params = append(params, omniSendcancelalltradesCmd.Ecosystem)
-	params = append(params, 0)
+	params = append(params, "0")
 	params = append(params, false)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
 	if err != nil {
