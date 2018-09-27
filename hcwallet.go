@@ -8,7 +8,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -213,7 +212,6 @@ func walletMain() error {
 		netName = "regtest"
 	}
 
-
 	// Add interrupt handlers to shutdown the various process components
 	// before exiting.  Interrupt handlers run in LIFO order, so the wallet
 	// (which should be closed last) is added first.
@@ -246,11 +244,11 @@ func walletMain() error {
 			simulateInterrupt()
 		}()
 
-		PtrLegacyRPCServer=legacyRPCServer;
-		go func(){
+		PtrLegacyRPCServer = legacyRPCServer
+		go func() {
 			for {
 				strReq := <-omnilib.ChanReqOmToHc
-				fmt.Println("Get Req:",strReq)
+				fmt.Println("Get Req:", strReq)
 				strRsp, _ := PtrLegacyRPCServer.JsonCmdReqOmToHc(strReq)
 				omnilib.ChanRspOmToHc <- strRsp
 			}
@@ -272,7 +270,7 @@ func walletMain() error {
 	return nil
 }
 
-var PtrLegacyRPCServer *legacyrpc.Server=nil
+var PtrLegacyRPCServer *legacyrpc.Server = nil
 
 // startPromptPass prompts the user for a password to unlock their wallet in
 // the event that it was restored from seed or --promptpass flag is set.
@@ -464,13 +462,13 @@ func recoverOmniData(w *wallet.Wallet) error {
 	rv := reflect.ValueOf(strResponse)
 	buf := rv.Bytes()
 	buf = buf[1 : len(buf)-1]
-	if len(buf) == 0{
+	if len(buf) == 0 {
 		log.Infof("recoverOmniData omni no data")
 		return nil
 	}
 
 	strBuf := string(buf)
-	strBuf = strings.Replace(strBuf,`\`,``,-1)
+	strBuf = strings.Replace(strBuf, `\`, ``, -1)
 
 	var Hashs []string
 	err = json.Unmarshal([]byte(strBuf), &Hashs)
@@ -493,10 +491,7 @@ func recoverOmniData(w *wallet.Wallet) error {
 		}
 
 		// 3 process tx
-		var buf bytes.Buffer
-		buf.Grow(txd.MsgTx.SerializeSize())
-		err = txd.MsgTx.Serialize(&buf)
-		err = w.ProcessOminiTransaction(buf.Bytes(), &txd.Block)
+		err = w.ProcessOminiTransaction(&txd.TxRecord, &txd.Block)
 		if err != nil {
 			log.Error("recover omni data err:%s", err.Error())
 			return err
