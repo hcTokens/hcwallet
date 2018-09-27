@@ -551,7 +551,7 @@ func (w *Wallet) txToOutputsInternal(outputs []*wire.TxOut, account uint32, minc
 
 		// TODO: this can be improved by not using the same codepath as notified
 		// relevant transactions, since this does a lot of extra work.
-		err = w.processTransactionRecord(dbtx, rec, nil, nil)
+		err = w.processTransactionRecord(dbtx, rec, nil, false, nil)
 		if err != nil {
 			return err
 		}
@@ -1389,7 +1389,7 @@ func (w *Wallet) purchaseTickets(req purchaseTicketRequest) ([]*chainhash.Hash, 
 		// publishing fails, the update is rolled back.
 		var ticketHash *chainhash.Hash
 		err = walletdb.Update(w.db, func(dbtx walletdb.ReadWriteTx) error {
-			err = w.processTransactionRecord(dbtx, rec, nil, nil)
+			err = w.processTransactionRecord(dbtx, rec, nil, false, nil)
 			if err != nil {
 				return err
 			}
