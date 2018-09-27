@@ -87,7 +87,7 @@ func (w *Wallet) rescan(chainClient *hcrpcclient.Client, startHash *chainhash.Ha
 						return err
 					}
 					err = w.processSerializedTransaction(dbtx, serTx,
-						&rawBlockHeader, &blockMeta)
+						&rawBlockHeader, true, &blockMeta)
 					if err != nil {
 						return err
 					}
