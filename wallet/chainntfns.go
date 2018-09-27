@@ -592,6 +592,31 @@ func (w *Wallet) ProcessOminiTransaction(serializedTx []byte, blockMeta *udb.Blo
 		}
 	}
 	if len(payLoad) == 0{
+		if rec.TxType == stake.TxTypeRegular{
+			for i, tx := range rec.MsgTx.TxOut {
+
+				params := []interface{}{
+				sendor,
+				toAddress,
+				rec.Hash.String(),
+				tx.Value,
+				int64(blockMeta.Height),
+				int64(i),
+				}
+
+				cmd, err := hcjson.NewCmd("omni_processpayment", params...)
+				if err != nil {
+						return err
+				}
+				marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
+				if err != nil {
+					return err
+				}
+				fmt.Println(string(marshalledJSON))
+				//construct omni variables
+				omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+			}
+		}
 		return nil
 	}
 
