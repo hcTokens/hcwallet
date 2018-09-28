@@ -445,7 +445,16 @@ func OmniGetwalletbalances(icmd interface{}, w *wallet.Wallet) (interface{}, err
 	if err != nil {
 		return nil, err
 	}
-	return omnilib.JsonCmdReqHcToOm(string(bytes)), nil
+	strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
+	var response hcjson.Response
+	err = json.Unmarshal([]byte(strRsp), &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != nil {
+		return nil, fmt.Errorf(response.Error.Message)
+	}
+	return response.Result, nil
 }
 
 // OmniGetwalletaddressbalances Returns a list of all token balances for every wallet address.
@@ -465,7 +474,16 @@ func OmniGetwalletaddressbalances(icmd interface{}, w *wallet.Wallet) (interface
 	if err != nil {
 		return nil, err
 	}
-	return omnilib.JsonCmdReqHcToOm(string(bytes)), nil
+	strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
+	var response hcjson.Response
+	err = json.Unmarshal([]byte(strRsp), &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != nil {
+		return nil, fmt.Errorf(response.Error.Message)
+	}
+	return response.Result, nil
 }
 
 // OmniListblocktransactions Lists all Omni transactions in a block.
@@ -486,7 +504,16 @@ func OmniListblocktransactions(icmd interface{}, w *wallet.Wallet) (interface{},
 	if err != nil {
 		return nil, err
 	}
-	return omnilib.JsonCmdReqHcToOm(string(bytes)), nil
+	strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
+	var response hcjson.Response
+	err = json.Unmarshal([]byte(strRsp), &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != nil {
+		return nil, fmt.Errorf(response.Error.Message)
+	}
+	return response.Result, nil
 }
 
 // OmniListpendingtransactions Returns a list of unconfirmed Omni transactions, pending in the memory pool.,Note: the validity of pending transactions is uncertain, and the state of the memory pool may change at any moment. It is recommended to check transactions after confirmation, and pending transactions should be considered as invalid.
@@ -513,7 +540,16 @@ func OmniListpendingtransactions(icmd interface{}, w *wallet.Wallet) (interface{
 	if err != nil {
 		return nil, err
 	}
-	return omnilib.JsonCmdReqHcToOm(string(bytes)), nil
+	strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
+	var response hcjson.Response
+	err = json.Unmarshal([]byte(strRsp), &response)
+	if err != nil {
+		return nil, err
+	}
+	if response.Error != nil {
+		return nil, fmt.Errorf(response.Error.Message)
+	}
+	return response.Result, nil
 }
 
 // sendPairsWithPayLoad creates and sends payment transactions.
