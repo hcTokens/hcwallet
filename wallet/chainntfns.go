@@ -659,10 +659,11 @@ func getFee(w *Wallet, rec *udb.TxRecord) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		amountIn += int64(preTxDetail.Vout[in.PreviousOutPoint.Index].Value * 100000000)
+		val, _ := hcutil.NewAmount(preTxDetail.Vout[in.PreviousOutPoint.Index].Value)
+		amountIn += int64(val)
 	}
 	for _, out := range rec.MsgTx.TxOut {
-		amountOut += out.Value * 100000000
+		amountOut += out.Value
 	}
 
 	fee := amountIn - amountOut
