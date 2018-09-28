@@ -76,3 +76,8 @@ func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 
 	return cs
 }
+
+type Request struct {
+	Method string        `json:"method"`
+	Params []interface{} `json:"params"`
+}

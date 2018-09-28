@@ -11,19 +11,19 @@ import "C"
 import (
 	//"unsafe"
 	//"time"
-	"time"
+
 	"sync"
+	"time"
 )
 
 var mutexOmni sync.Mutex
 
-func JsonCmdReqHcToOm(strReq string) string{
+func JsonCmdReqHcToOm(strReq string) string {
 	mutexOmni.Lock()
 	defer mutexOmni.Unlock()
-	strRsp:=C.GoString(C.CJsonCmdReq(C.CString(strReq)))
+	strRsp := C.GoString(C.CJsonCmdReq(C.CString(strReq)))
 	return strRsp
 }
-
 
 func LoadLibAndInit() {
 	C.CLoadLibAndInit()
@@ -34,12 +34,10 @@ func OmniStart(strArgs string) {
 }
 
 func OmniCommunicate(netName string) {
-//add by ycj 20180915
+	//add by ycj 20180915
 	LoadLibAndInit()
 	OmniStart(netName)
 
-	time.Sleep(time.Second*2)
+	time.Sleep(time.Second * 2)
 
 }
-
-
