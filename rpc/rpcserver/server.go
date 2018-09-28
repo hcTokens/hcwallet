@@ -559,7 +559,7 @@ func (s *walletServer) ImportPrivateKey(ctx context.Context, req *pb.ImportPriva
 	}
 
 	if req.Rescan {
-		s.wallet.RescanFromHeight(chainClient, req.ScanFrom)
+		s.wallet.RescanFromHeight(chainClient, req.ScanFrom, false)
 	}
 
 	return &pb.ImportPrivateKeyResponse{}, nil
@@ -624,7 +624,7 @@ func (s *walletServer) ImportScript(ctx context.Context,
 	}
 
 	if req.Rescan {
-		s.wallet.RescanFromHeight(chainClient, req.ScanFrom)
+		s.wallet.RescanFromHeight(chainClient, req.ScanFrom, false)
 	}
 
 	p2sh, err := hcutil.NewAddressScriptHash(req.Script, s.wallet.ChainParams())
