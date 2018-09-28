@@ -73,7 +73,7 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 				return nil
 			})
 			if err == nil {
-				w.RescanFromHeight(w.chainClient.Client, height)
+				w.RescanFromHeight(w.chainClient.Client, height,false)
 			}
 		}
 	}
