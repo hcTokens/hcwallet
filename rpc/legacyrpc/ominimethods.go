@@ -890,8 +890,28 @@ func OmniSendgrant(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // OmniSendrevoke Revoke units of managed tokens.
 // $ omnicore-cli "omni_sendrevoke" "3HsJvhr9qzgRe3ss97b1QHs38rmaLExLcH" "" 51 "100"
 func OmniSendrevoke(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
-	_ = icmd.(*hcjson.OmniSendrevokeCmd)
-	return omni_cmdReq(icmd, w)
+	omniSendrevokeCmd := icmd.(*hcjson.OmniSendrevokeCmd)
+	ret, err := omni_cmdReq(icmd, w)
+	if err != nil {
+		return nil, err
+	}
+	hexStr := strings.Trim(string(ret), "\"")
+	payLoad, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, err
+	}
+	_, err = decodeAddress(omniSendrevokeCmd.Fromaddress, w.ChainParams())
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := &SendFromAddressToAddress{
+		FromAddress:   omniSendrevokeCmd.Fromaddress,
+		ChangeAddress: omniSendrevokeCmd.Fromaddress,
+		ToAddress:     omniSendrevokeCmd.Fromaddress,
+		Amount:        1,
+	}
+	return omniSendToAddress(cmd, w, payLoad)
 }
 
 // OmniSendclosecrowdsale Manually close a crowdsale.
