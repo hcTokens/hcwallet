@@ -9,8 +9,8 @@ package omnilib
 //#cgo LDFLAGS:-L./ -lomnicored -lbitcoin_server -lbitcoin_common -lunivalue -lbitcoin_util -lbitcoin_wallet  -lbitcoin_consensus -lbitcoin_crypto -lleveldb -lmemenv -lsecp256k1 -lboost_system -lboost_filesystem -lboost_program_options -lboost_thread -lboost_chrono -ldb_cxx -lssl -lcrypto  -levent_pthreads -levent -lm -lstdc++
 import "C"
 import (
-	//"unsafe"
-	//"time"
+	"unsafe"
+	"fmt"
 
 	"sync"
 	"time"
@@ -41,3 +41,30 @@ func OmniCommunicate(netName string) {
 	time.Sleep(time.Second * 2)
 
 }
+
+var ChanReqOmToHc=make(chan string )
+var ChanRspOmToHc=make(chan string )
+
+// callback to LegacyRPC.Server
+//var PtrLegacyRPCServer *Server=nil
+
+//export JsonCmdReqOmToHc
+func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
+	strReq:=C.GoString(pcReq)
+	fmt.Println("Go JsonCmdReqOmToHc strReq=",strReq)
+	ChanReqOmToHc<-strReq
+	strRsp:=<-ChanRspOmToHc
+	fmt.Println("Go JsonCmdReqOmToHc strRsp=",strRsp)
+	cs := C.CString(strRsp)
+
+	defer func(){
+		go func() {
+			time.Sleep(time.Microsecond*200)
+			C.free(unsafe.Pointer(cs))
+		}()
+	}()
+
+	return cs
+}
+
+
