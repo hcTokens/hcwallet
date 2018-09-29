@@ -637,7 +637,7 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		FromAddress:   omniSenddexsellCmd.Fromaddress,
 		ChangeAddress: omniSenddexsellCmd.Fromaddress,
 		ToAddress:     omniSenddexsellCmd.Fromaddress,
-		Amount:        1,
+		Amount:       MininumAmount,
 	}
 	txid, err := omniSendToAddress(cmd, w, payLoad)
 	if err != nil {
@@ -650,6 +650,7 @@ func OmniSenddexsell(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 	params = append(params, 20) //MSC_TYPE_TRADE_OFFER = 20,
 	params = append(params, omniSenddexsellCmd.Propertyidforsale)
 	params = append(params, omniSenddexsellCmd.Amountforsale)
+	params = append(params, false)
 	newCmd, err := hcjson.NewCmd("omni_pending_add", params...)
 	if err != nil {
 		return nil, err
@@ -690,7 +691,7 @@ func OmniSenddexaccept(icmd interface{}, w *wallet.Wallet) (interface{}, error) 
 		FromAddress:   omniSenddexacceptCmd.Fromaddress,
 		ChangeAddress: omniSenddexacceptCmd.Fromaddress,
 		ToAddress:     omniSenddexacceptCmd.Toaddress,
-		Amount:        1,
+		Amount:        MininumAmount,  // > Minacceptfee
 	}
 	txid, err := omniSendToAddress(cmd, w, payLoad)
 	if err != nil {
