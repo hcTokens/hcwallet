@@ -960,7 +960,7 @@ func importPrivKey(icmd interface{}, w *wallet.Wallet, chainClient *hcrpcclient.
 	}
 
 	if rescan {
-		w.RescanFromHeight(chainClient, scanFrom, false)
+		w.RescanFromHeight(chainClient, scanFrom)
 	}
 
 	return nil, err
@@ -994,7 +994,7 @@ func importScript(icmd interface{}, w *wallet.Wallet, chainClient *hcrpcclient.C
 	}
 
 	if rescan {
-		w.RescanFromHeight(chainClient, int32(scanFrom), false)
+		w.RescanFromHeight(chainClient, int32(scanFrom))
 	}
 
 	return nil, nil
@@ -2182,7 +2182,7 @@ func rescanWallet(icmd interface{}, w *wallet.Wallet, chainClient *hcrpcclient.C
 	if *cmd.BeginHeight != 0 {
 		return nil, fmt.Errorf("not support sync from height != 0")
 	}
-	err := <-w.RescanFromHeight(chainClient, int32(*cmd.BeginHeight), true)
+	err := <-w.RescanFromHeight(chainClient, int32(*cmd.BeginHeight))
 	return nil, err
 }
 

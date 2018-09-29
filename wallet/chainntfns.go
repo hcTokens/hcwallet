@@ -73,7 +73,7 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 				return nil
 			})
 			if err == nil {
-				w.RescanFromHeight(w.chainClient.Client, height, false)
+				w.RescanFromHeight(w.chainClient.Client, height)
 			}
 		}
 	}
@@ -150,17 +150,20 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 			return err
 		}
 	}
+	w.BlockConnectEnd(&blockMeta)
+	return nil
+}
 
+// BlockConnectEnd used to clear some expire data after block connected
+func (w *Wallet) BlockConnectEnd(blockMeta *udb.BlockMeta) {
 	req := omnilib.Request{
 		Method: "omni_onblockconnected",
 		Params: []interface{}{blockMeta.Block.Height, blockMeta.Block.Hash.String(), blockMeta.Time.Unix()},
 	}
 	bytes, err := json.Marshal(req)
 	if err == nil {
-		strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
-		fmt.Println(strRsp)
+		omnilib.JsonCmdReqHcToOm(string(bytes))
 	}
-	return nil
 }
 
 type sideChainBlock struct {
