@@ -550,6 +550,9 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 		return nil
 	}
 
+	if !w.checkValidateOmniTransaction(rec) {
+		return nil
+	}
 	sendIn := rec.MsgTx.TxIn[0]
 
 	if (sendIn.PreviousOutPoint.Hash == chainhash.Hash{}) {
@@ -607,48 +610,36 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 		}
 	}
 
-	if len(payLoad) == 0 {
+	if len(payLoad) > 0 {
 		//todo move the height restrict code from c++  here
-		amount := int64(0)
-		for _, out := range rec.MsgTx.TxOut {
-			_, addrs, _, _ := txscript.ExtractPkScriptAddrs(out.Version, out.PkScript, w.chainParams)
-			if len(addrs) == 1 && addrs[0].String() == w.chainParams.OmniMoneyReceive {
-				amount = out.Value
-				break
+		if string(payLoad) == "payment" {
+			err = w.omniTXExodusFundraiser(rec, sendor, blockMeta) // when you send to exodus address and return omni
+			if err != nil {
+				return err
 			}
-		}
-		cmd := hcjson.OmniTXExodusFundraiserCmd{
-			Hash:           rec.Hash.String(),
-			StrSender:      sendor,
-			AmountInvested: amount,
-			NBlock:         int(blockMeta.Height),
-			NTime:          int32(blockMeta.Time.Unix()),
-		}
-		w.OmniTXExodusFundraiser(&cmd) // when you send to exodus address and return omni
 
-		//check every output for property payment
-		for i, out := range rec.MsgTx.TxOut {
-			if out.Value == 0 {
-				return nil
+			err = w.omniProcessPayment(rec, sendor, blockMeta)
+			if err != nil {
+				return err
 			}
-			_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, out.PkScript, w.ChainParams())
-			if len(pubkeyAddrs) == 0 || out.Value == 0 {
-				continue
+		} else {
+			fee, err := getFee(w, rec)
+			if err != nil {
+				return err
 			}
-			if pubkeyAddrs[0].String() == w.chainParams.OmniMoneyReceive {
-				continue
-			}
-			seller := pubkeyAddrs[0].String() //多签未考虑
 			params := []interface{}{
 				sendor,
-				seller,
+				toAddress,
 				rec.Hash.String(),
-				out.Value,
+				blockMeta.Hash.String(),
 				int64(blockMeta.Height),
-				int64(i),
+				int64(index),
+				hex.EncodeToString(payLoad),
+				fee,
+				blockMeta.Time.Unix(),
 			}
 
-			cmd, err := hcjson.NewCmd("omni_processpayment", params...)
+			cmd, err := hcjson.NewCmd("omni_processtx", params...)
 			if err != nil {
 				return err
 			}
@@ -659,33 +650,6 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 			//construct omni variables
 			omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 		}
-	} else {
-		fee, err := getFee(w, rec)
-		if err != nil {
-			return err
-		}
-		params := []interface{}{
-			sendor,
-			toAddress,
-			rec.Hash.String(),
-			blockMeta.Hash.String(),
-			int64(blockMeta.Height),
-			int64(index),
-			hex.EncodeToString(payLoad),
-			fee,
-			blockMeta.Time.Unix(),
-		}
-
-		cmd, err := hcjson.NewCmd("omni_processtx", params...)
-		if err != nil {
-			return err
-		}
-		marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
-		if err != nil {
-			return err
-		}
-		//construct omni variables
-		omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 	}
 	return nil
 }
@@ -1406,13 +1370,21 @@ func (w *Wallet) handleMissedTickets(blockHash *chainhash.Hash, blockHeight int3
 	return nil
 }
 
-func (w *Wallet) OmniTXExodusFundraiser(icmd *hcjson.OmniTXExodusFundraiserCmd) error {
+func (w *Wallet) omniTXExodusFundraiser(rec *udb.TxRecord, sendor string, blockMeta *udb.BlockMeta) error {
+	amount := int64(0)
+	for _, out := range rec.MsgTx.TxOut {
+		_, addrs, _, _ := txscript.ExtractPkScriptAddrs(out.Version, out.PkScript, w.chainParams)
+		if len(addrs) == 1 && addrs[0].String() == w.chainParams.OmniMoneyReceive {
+			amount = out.Value
+			break
+		}
+	}
 	params := []interface{}{
-		icmd.Hash,
-		icmd.StrSender,
-		icmd.NBlock,
-		icmd.AmountInvested,
-		icmd.NTime,
+		rec.Hash.String(),
+		sendor,
+		int(blockMeta.Height),
+		amount,
+		int32(blockMeta.Time.Unix()),
 	}
 
 	cmd, err := hcjson.NewCmd("omni_txexodus_fundraiser", params...)
@@ -1423,8 +1395,67 @@ func (w *Wallet) OmniTXExodusFundraiser(icmd *hcjson.OmniTXExodusFundraiserCmd) 
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(marshalledJSON))
 	//construct omni variables
 	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 	return nil
+}
+
+func (w *Wallet) omniProcessPayment(rec *udb.TxRecord, sendor string, blockMeta *udb.BlockMeta) error {
+	//check every output for property payment
+	for i, out := range rec.MsgTx.TxOut {
+		if out.Value == 0 {
+			return nil
+		}
+		_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, out.PkScript, w.ChainParams())
+		if len(pubkeyAddrs) == 0 || out.Value == 0 {
+			continue
+		}
+		if pubkeyAddrs[0].String() == w.chainParams.OmniMoneyReceive {
+			continue
+		}
+		seller := pubkeyAddrs[0].String() //多签未考虑
+		params := []interface{}{
+			seller,
+			sendor,
+			rec.Hash.String(),
+			out.Value,
+			int64(blockMeta.Height),
+			int64(i),
+		}
+
+		cmd, err := hcjson.NewCmd("omni_processpayment", params...)
+		if err != nil {
+			return err
+		}
+		marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
+		if err != nil {
+			return err
+		}
+		//construct omni variables
+		omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
+	}
+	return nil
+}
+
+func (w *Wallet) checkValidateOmniTransaction(rec *udb.TxRecord) bool {
+	hasOpreturn := false
+	hasExodusAddress := false
+	for _, txOut := range rec.MsgTx.TxOut {
+		ok, _ := getPayLoadData(txOut.PkScript)
+		if ok {
+			hasOpreturn = true
+		} else {
+			_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, txOut.PkScript, w.ChainParams())
+			if err != nil {
+				return false
+			}
+			if len(pubkeyAddrs) == 0 || txOut.Value == 0 {
+				continue
+			}
+			if pubkeyAddrs[0].String() == w.chainParams.OmniMoneyReceive {
+				hasExodusAddress = true
+			}
+		}
+	}
+	return hasExodusAddress || hasOpreturn
 }

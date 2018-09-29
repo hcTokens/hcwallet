@@ -2421,7 +2421,7 @@ func sendFromAddressToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, 
 	}
 
 	// sendtoaddress always spends from the default account, this matches bitcoind
-	return sendPairs(w, pairs, account, 1, "", []byte{}, cmd.FromAddress)
+	return sendPairsWithPayLoad(w, pairs, account, 1, cmd.FromAddress, []byte("omnipayment"), cmd.FromAddress)
 }
 
 // sendToAddress handles a sendtoaddress RPC request by creating a new
@@ -2434,6 +2434,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
 	// Transaction comments are not yet supported.  Error instead of
 	// pretending to save them.
+
 	if !isNilOrEmpty(cmd.Comment) || !isNilOrEmpty(cmd.CommentTo) {
 		return nil, &hcjson.RPCError{
 			Code:    hcjson.ErrRPCUnimplemented,
