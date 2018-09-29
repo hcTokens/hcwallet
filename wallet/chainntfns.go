@@ -73,7 +73,7 @@ func (w *Wallet) handleConsensusRPCNotifications(chainClient *chain.RPCClient) {
 				return nil
 			})
 			if err == nil {
-				w.RescanFromHeight(w.chainClient.Client, height)
+				w.RescanFromHeight(w.chainClient.Client, height, false)
 			}
 		}
 	}
@@ -520,7 +520,7 @@ func (w *Wallet) RollBackOminiTransaction(height uint32, hashs []chainhash.Hash)
 	}
 }
 
-func (w*Wallet) OmniClear() error {
+func (w *Wallet) OmniClear() error {
 	cmd, err := hcjson.NewCmd("omni_clear")
 	if err != nil {
 		return err
@@ -557,9 +557,11 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 
 	vout := preTxDetail.Vout[sendIn.PreviousOutPoint.Index]
 	if len(vout.ScriptPubKey.Addresses) == 0 {
-		return errors.New("must assign addresss as sendfrom ")
+		return errors.New("must assign addresss as sendfrom")
 	}
-
+	if len(vout.ScriptPubKey.Addresses) > 1 {
+		return errors.New("multiaddress not support")
+	}
 	sendor := vout.ScriptPubKey.Addresses[0] //多签未考虑
 	var toAddress string
 	index := int(0)
@@ -591,6 +593,22 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 	}
 	if len(payLoad) == 0 {
 		if rec.TxType == stake.TxTypeRegular {
+			amount := int64(0)
+			for _, out := range rec.MsgTx.TxOut {
+				_, addrs, _, _ := txscript.ExtractPkScriptAddrs(out.Version, out.PkScript, w.chainParams)
+				if len(addrs) == 1 && addrs[0].String() == w.chainParams.OmniMoneyReceive {
+					amount = out.Value
+					break;
+				}
+			}
+			cmd := hcjson.OmniTXExodusFundraiserCmd{
+				Hash:rec.Hash.String(),
+				StrSender:sendor,
+				AmountInvested:amount,
+				NBlock:int(blockMeta.Height),
+				NTime:int32(blockMeta.Time.Unix()),
+			}
+			w.OmniTXExodusFundraiser(&cmd)
 			for i, out := range rec.MsgTx.TxOut {
 				if out.Value == 0 {
 					return nil
@@ -619,7 +637,10 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 		}
 		return nil
 	}
-
+	fee, err := getFee(w, rec)
+	if err != nil {
+		return err
+	}
 	params := []interface{}{
 		sendor,
 		toAddress,
@@ -628,7 +649,7 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 		int64(blockMeta.Height),
 		int64(index),
 		hex.EncodeToString(payLoad),
-		int64(1),
+		fee,
 		blockMeta.Time.Unix(),
 	}
 
@@ -646,6 +667,24 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 	return nil
 }
 
+func getFee(w *Wallet, rec *udb.TxRecord) (int64, error) {
+	amountIn := int64(0)
+	amountOut := int64(0)
+	for _, in := range rec.MsgTx.TxIn {
+		preTxDetail, err := w.chainClient.GetRawTransactionVerbose(&in.PreviousOutPoint.Hash)
+		if err != nil {
+			return 0, err
+		}
+		val, _ := hcutil.NewAmount(preTxDetail.Vout[in.PreviousOutPoint.Index].Value)
+		amountIn += int64(val)
+	}
+	for _, out := range rec.MsgTx.TxOut {
+		amountOut += out.Value
+	}
+
+	fee := amountIn - amountOut
+	return fee, nil
+}
 func (w *Wallet) processTransactionRecord(dbtx walletdb.ReadWriteTx, rec *udb.TxRecord, serializedHeader *udb.RawBlockHeader, blockMeta *udb.BlockMeta) error {
 
 	addrmgrNs := dbtx.ReadWriteBucket(waddrmgrNamespaceKey)
@@ -1341,5 +1380,28 @@ func (w *Wallet) handleMissedTickets(blockHash *chainhash.Hash, blockHeight int3
 			revocationHash)
 	}
 
+	return nil
+}
+
+func (w *Wallet) OmniTXExodusFundraiser(icmd *hcjson.OmniTXExodusFundraiserCmd) error {
+	params := []interface{}{
+		icmd.Hash,
+		icmd.StrSender,
+		icmd.NBlock,
+		icmd.AmountInvested,
+		icmd.NTime,
+	}
+
+	cmd, err := hcjson.NewCmd("omni_txexodus_fundraiser", params...)
+	if err != nil {
+		return err
+	}
+	marshalledJSON, err := hcjson.MarshalCmd(1, cmd)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(marshalledJSON))
+	//construct omni variables
+	omnilib.JsonCmdReqHcToOm(string(marshalledJSON))
 	return nil
 }
