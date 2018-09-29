@@ -151,6 +151,15 @@ func (w *Wallet) extendMainChain(dbtx walletdb.ReadWriteTx, block *udb.BlockHead
 		}
 	}
 
+	req := omnilib.Request{
+		Method: "omni_onblockconnected",
+		Params: []interface{}{blockMeta.Block.Height, blockMeta.Block.Hash.String(), blockMeta.Time.Unix()},
+	}
+	bytes, err := json.Marshal(req)
+	if err == nil {
+		strRsp := omnilib.JsonCmdReqHcToOm(string(bytes))
+		fmt.Println(strRsp)
+	}
 	return nil
 }
 
