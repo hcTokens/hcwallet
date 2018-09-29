@@ -622,9 +622,17 @@ func (w *Wallet) ProcessOminiTransaction(rec *udb.TxRecord, blockMeta *udb.Block
 			if out.Value == 0 {
 				return nil
 			}
+			_, pubkeyAddrs, _, err := txscript.ExtractPkScriptAddrs(txscript.DefaultScriptVersion, out.PkScript, w.ChainParams())
+			if len(pubkeyAddrs) == 0 || out.Value == 0 {
+				continue
+			}
+			if pubkeyAddrs[0].String() == w.chainParams.OmniMoneyReceive {
+				continue
+			}
+			seller := pubkeyAddrs[0].String() //多签未考虑
 			params := []interface{}{
 				sendor,
-				toAddress,
+				seller,
 				rec.Hash.String(),
 				out.Value,
 				int64(blockMeta.Height),
