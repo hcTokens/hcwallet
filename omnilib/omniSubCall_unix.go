@@ -58,5 +58,3 @@ func JsonCmdReqOmToHc(pcReq *C.char) *C.char {
 
 	return cs
 }
-
-

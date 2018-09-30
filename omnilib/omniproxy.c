@@ -49,8 +49,6 @@ const char* CJsonCmdReq(char *pcReq)
     if(funJsonCmdReq==NULL)
         return NULL;
     const char* ret = funJsonCmdReq(pcReq);
-    printf("88888888888888888888888888888\n");
-    printf(ret);
     return ret;
 };
 
