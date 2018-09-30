@@ -62,6 +62,8 @@ int CSetCallback(int iIndex,void* pCallback)
 };
 
 #else //for linux etc
+extern int OmniStart(char *pcArgs);
+extern const char* JsonCmdReq(char *pcReq);
 void CLoadLibAndInit()
 {
     return;

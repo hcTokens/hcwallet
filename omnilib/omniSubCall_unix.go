@@ -33,14 +33,6 @@ func OmniStart(strArgs string) {
 	C.COmniStart(C.CString(strArgs))
 }
 
-func OmniCommunicate(netName string) {
-	//add by ycj 20180915
-	LoadLibAndInit()
-	OmniStart(netName)
-
-	time.Sleep(time.Second * 2)
-
-}
 
 var ChanReqOmToHc=make(chan string )
 var ChanRspOmToHc=make(chan string )
