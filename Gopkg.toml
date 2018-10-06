@@ -31,7 +31,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/HcashOrg/hcd"
+  name = "github.com/hcTokens/hcd"
 
 [[constraint]]
   branch = "master"
